@@ -30,6 +30,21 @@ def slugify(value):
     return value.strip("-") or "book"
 
 
+def clean_text(value):
+    if value is None:
+        return None
+    if isinstance(value, str):
+        cleaned = value.strip()
+        return cleaned or None
+
+    try:
+        cleaned = str(value).strip()
+    except Exception:
+        return None
+
+    return cleaned or None
+
+
 def parse_filename(file_path):
     name = file_path.stem
     match = re.match(r"(.+?)\s*\((.+?)\)$", name)
@@ -49,10 +64,10 @@ def extract_pdf_metadata(file_path):
         metadata = reader.metadata or {}
         page_count = len(reader.pages)
         return {
-            "title": metadata.get("/Title"),
-            "author": metadata.get("/Author"),
-            "description": metadata.get("/Subject"),
-            "publisher": metadata.get("/Producer"),
+            "title": clean_text(metadata.get("/Title")),
+            "author": clean_text(metadata.get("/Author")),
+            "description": clean_text(metadata.get("/Subject")),
+            "publisher": clean_text(metadata.get("/Producer")),
             "page_count": page_count,
         }
     except Exception:
@@ -64,7 +79,7 @@ def _first_epub_metadata(book, namespace, name):
     if not values:
         return None
     value = values[0][0]
-    return value.strip() if isinstance(value, str) else value
+    return clean_text(value)
 
 
 def extract_epub_metadata(file_path):
@@ -98,7 +113,7 @@ def _extract_epub_identifier(book):
     identifiers = book.get_metadata("DC", "identifier")
     if identifiers:
         value = identifiers[0][0]
-        return value.strip() if isinstance(value, str) else value
+        return clean_text(value)
     return None
 
 
@@ -113,8 +128,14 @@ def extract_metadata(file_path):
     elif extension == ".epub":
         metadata.update({k: v for k, v in extract_epub_metadata(file_path).items() if v})
 
-    metadata["title"] = metadata.get("title") or file_path.stem
-    metadata["author"] = metadata.get("author") or "Unknown"
+    metadata["title"] = clean_text(metadata.get("title")) or file_path.stem
+    metadata["author"] = clean_text(metadata.get("author")) or "Unknown"
+    metadata["subtitle"] = clean_text(metadata.get("subtitle"))
+    metadata["description"] = clean_text(metadata.get("description"))
+    metadata["isbn"] = clean_text(metadata.get("isbn"))
+    metadata["publisher"] = clean_text(metadata.get("publisher"))
+    metadata["published_date"] = clean_text(metadata.get("published_date"))
+    metadata["language"] = clean_text(metadata.get("language"))
     return metadata
 
 
@@ -276,8 +297,8 @@ def resolve_existing_book(metadata):
             if stem in existing_stems:
                 return book
 
-    title = (metadata.get("title") or "").strip()
-    author = (metadata.get("author") or "").strip()
+    title = clean_text(metadata.get("title")) or ""
+    author = clean_text(metadata.get("author")) or ""
     if not title:
         return None
 

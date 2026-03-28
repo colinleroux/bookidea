@@ -233,7 +233,7 @@ def delete_category(category_id):
 
 @main.route("/import", methods=["POST"])
 def import_books():
-    batch_size = request.form.get("batch_size", default=100, type=int) or 100
+    batch_size = request.form.get("batch_size", default=25, type=int) or 25
     result = import_new_books(limit=batch_size)
     processed_count = len(result["processed"])
 
