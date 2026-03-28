@@ -110,6 +110,51 @@
                 </article>
             {% endfor %}
         </div>
+
+        {% if pagination.pages > 1 %}
+            <div class="mt-8 flex flex-wrap items-center justify-between gap-4 rounded-[1.6rem] border border-sky-200 bg-white/85 px-5 py-4 shadow-lg shadow-sky-200/30">
+                <p class="text-sm text-slate-600">
+                    Showing page {{ pagination.page }} of {{ pagination.pages }}.
+                    {{ pagination.total }} books total.
+                </p>
+                <div class="flex flex-wrap items-center gap-3">
+                    {% if pagination.has_prev %}
+                        <a
+                            href="{{ url_for('main.index', page=pagination.prev_num, q=query_text, category=selected_category.id if selected_category else None, author=author_name or None) }}"
+                            class="rounded-full border border-sky-200 px-4 py-2 text-sm font-semibold text-slate-700 transition hover:bg-sky-50"
+                        >
+                            Previous
+                        </a>
+                    {% endif %}
+
+                    {% for page_number in pagination.iter_pages(left_edge=1, left_current=1, right_current=2, right_edge=1) %}
+                        {% if page_number %}
+                            {% if page_number == pagination.page %}
+                                <span class="rounded-full bg-sky-600 px-4 py-2 text-sm font-semibold text-white">{{ page_number }}</span>
+                            {% else %}
+                                <a
+                                    href="{{ url_for('main.index', page=page_number, q=query_text, category=selected_category.id if selected_category else None, author=author_name or None) }}"
+                                    class="rounded-full border border-sky-200 px-4 py-2 text-sm font-semibold text-slate-700 transition hover:bg-sky-50"
+                                >
+                                    {{ page_number }}
+                                </a>
+                            {% endif %}
+                        {% else %}
+                            <span class="px-2 text-sm text-slate-400">...</span>
+                        {% endif %}
+                    {% endfor %}
+
+                    {% if pagination.has_next %}
+                        <a
+                            href="{{ url_for('main.index', page=pagination.next_num, q=query_text, category=selected_category.id if selected_category else None, author=author_name or None) }}"
+                            class="rounded-full border border-sky-200 px-4 py-2 text-sm font-semibold text-slate-700 transition hover:bg-sky-50"
+                        >
+                            Next
+                        </a>
+                    {% endif %}
+                </div>
+            </div>
+        {% endif %}
     {% else %}
         <div class="rounded-[2rem] border border-dashed border-sky-300 bg-white/70 px-8 py-12 text-center shadow-lg shadow-sky-100/40">
             <h2 class="text-2xl font-semibold text-slate-950">No books match the current filters.</h2>

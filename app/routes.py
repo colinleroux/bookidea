@@ -26,6 +26,7 @@ def index():
     query_text = request.args.get("q", "").strip()
     category_id = request.args.get("category", type=int)
     author_name = request.args.get("author", "").strip()
+    page = request.args.get("page", default=1, type=int)
 
     books_query = Book.query
 
@@ -45,7 +46,8 @@ def index():
     if author_name:
         books_query = books_query.filter(Book.author == author_name)
 
-    books = books_query.order_by(Book.title.asc()).all()
+    pagination = books_query.order_by(Book.title.asc()).paginate(page=page, per_page=24, error_out=False)
+    books = pagination.items
     categories = Category.query.order_by(Category.name.asc()).all()
     pending_imports = count_pending_imports()
     review_count = Book.query.filter_by(needs_review=True).count()
@@ -53,6 +55,7 @@ def index():
     return render_template(
         "index.html",
         books=books,
+        pagination=pagination,
         categories=categories,
         pending_imports=pending_imports,
         review_count=review_count,
