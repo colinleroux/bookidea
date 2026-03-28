@@ -1,0 +1,34 @@
+i have the makings of a project that i need your assistance to sort out
+the aim is to have a docker setup that allows me to view my book collection as cards and also to easily add new books
+i have a basic setup (uses postgress - want sqlite) and the setup is basic - 
+ideally the final app will allow me to filter books from a dropdown
+allow me to add a pdf and or epub to a directory and click a button to import it to the "library"
+the home page should show all books as cards - allow filtering by category (and perhaps even subcategory)
+clicking on a book card opens that book in detail - showing all its relevant details
+whilst offering the ability to download the pdf and or epub and the necessary crud
+
+I would like to automate the potential opening and auto getting of as many fields as possible 
+essentially allowing the adding of a file - clicking an add to library button and it does the rest of pop the details and 
+adding to the main book folder and adding to db.
+
+current app shortfalls :
+no alpine js for good ui interaction
+docker compose build needs to build the tailwind via vite /npm
+initial build needs migrations to build db if one is not present
+it has import_books.py which does not add a placeholder image
+i have other apps that run on localhost so it would be great to have it at localhost but not port 5000 rether something other than 80 or 5000
+Next steps - 
+get the dockerfile/dockercompose to setup the required app 
+adding books to the book folder and clicking import books will copy from new_books folder into books and add to db
+add the ability for subcategories - not sure how yet but thinking along the lines of :
+non fiction - category- IT - subcategory -programming -subsub cat - Python
+I would like a search - to search via title or author
+
+Book cards are basic with cover, author, short desc, rating?, isbn? links to files
+book detail to offer front and back cover, detailed description, , rating? etc etc
+
+Ideally this is for home use not public so no need for auth etc 
+
+I would love to expand it so if a book is selected somehow we can go online and get other somehow related books etc
+
+Do you have reference to my other projects as the deeds app is well structured and i would like to use that type of setup
