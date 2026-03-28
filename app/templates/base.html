@@ -7,18 +7,18 @@
     <script defer src="https://cdn.jsdelivr.net/npm/alpinejs@3.x.x/dist/cdn.min.js"></script>
     <script src="https://cdn.tailwindcss.com"></script>
 </head>
-<body class="min-h-screen bg-stone-100 text-stone-900">
-    <div class="min-h-screen bg-[radial-gradient(circle_at_top,_rgba(120,53,15,0.12),_transparent_40%),linear-gradient(180deg,_#f7f2e8_0%,_#f2ece1_45%,_#e5dccd_100%)]">
-        <header class="border-b border-stone-300/70 bg-white/70 backdrop-blur">
+<body class="min-h-screen bg-slate-100 text-slate-900">
+    <div class="min-h-screen bg-[radial-gradient(circle_at_top_left,_rgba(14,165,233,0.22),_transparent_34%),radial-gradient(circle_at_top_right,_rgba(244,63,94,0.14),_transparent_28%),linear-gradient(180deg,_#f7fbff_0%,_#edf6ff_48%,_#eef2ff_100%)]">
+        <header class="border-b border-sky-200/70 bg-white/80 backdrop-blur">
             <div class="mx-auto flex max-w-7xl items-center justify-between px-6 py-5">
                 <div>
-                    <a href="{{ url_for('main.index') }}" class="text-2xl font-semibold tracking-tight text-stone-900">Library Atelier</a>
-                    <p class="text-sm text-stone-600">A calm home for your book collection</p>
+                    <a href="{{ url_for('main.index') }}" class="text-2xl font-semibold tracking-tight text-slate-950">Library Atelier</a>
+                    <p class="text-sm text-slate-600">A bright, practical home for your book collection</p>
                 </div>
-                <nav class="flex flex-wrap items-center gap-3 text-sm font-medium text-stone-700">
-                    <a href="{{ url_for('main.index') }}" class="rounded-full px-4 py-2 transition hover:bg-stone-200">Library</a>
-                    <a href="{{ url_for('main.manage_books') }}" class="rounded-full px-4 py-2 transition hover:bg-stone-200">Manage Books</a>
-                    <a href="{{ url_for('main.manage_categories') }}" class="rounded-full px-4 py-2 transition hover:bg-stone-200">Categories</a>
+                <nav class="flex flex-wrap items-center gap-3 text-sm font-medium text-slate-700">
+                    <a href="{{ url_for('main.index') }}" class="rounded-full px-4 py-2 transition hover:bg-sky-100 hover:text-sky-900">Library</a>
+                    <a href="{{ url_for('main.manage_books') }}" class="rounded-full px-4 py-2 transition hover:bg-sky-100 hover:text-sky-900">Manage Books</a>
+                    <a href="{{ url_for('main.manage_categories') }}" class="rounded-full px-4 py-2 transition hover:bg-sky-100 hover:text-sky-900">Categories</a>
                 </nav>
             </div>
         </header>
@@ -28,7 +28,7 @@
                 {% if messages %}
                     <div class="mb-6 space-y-3">
                         {% for category, message in messages %}
-                            <div class="rounded-2xl border border-stone-300 bg-white px-4 py-3 text-sm text-stone-700 shadow-sm">{{ message }}</div>
+                            <div class="rounded-2xl border border-sky-200 bg-white/90 px-4 py-3 text-sm text-slate-700 shadow-sm shadow-sky-100/70">{{ message }}</div>
                         {% endfor %}
                     </div>
                 {% endif %}

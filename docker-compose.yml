@@ -3,7 +3,7 @@ services:
     build:
       context: .
       args:
-        INSTALL_CALIBRE: ${INSTALL_CALIBRE:-0}
+        INSTALL_CALIBRE: ${INSTALL_CALIBRE:-1}
     ports:
       - "8008:8000"
     environment:

@@ -137,12 +137,18 @@ It can help populate:
 
 ### Enable Calibre in Docker
 
-By default, Docker builds without Calibre.
+By default, Docker builds with Calibre enabled.
 
-To build the container with Calibre installed:
+To build the container with Calibre enabled:
 
 ```powershell
-$env:INSTALL_CALIBRE="1"
+docker compose up --build
+```
+
+To disable Calibre for a build:
+
+```powershell
+$env:INSTALL_CALIBRE="0"
 docker compose up --build
 ```
 

@@ -13,12 +13,18 @@ The importer can use Calibre's `ebook-meta` command to enrich imported books wit
 
 ## Docker usage
 
-By default, Docker builds without Calibre.
+By default, Docker builds with Calibre enabled.
 
-To build the container with Calibre installed:
+To build the container with Calibre enabled:
 
 ```powershell
-$env:INSTALL_CALIBRE="1"
+docker compose up --build
+```
+
+To disable Calibre for a build:
+
+```powershell
+$env:INSTALL_CALIBRE="0"
 docker compose up --build
 ```
 

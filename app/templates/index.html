@@ -3,13 +3,7 @@
 {% block title %}Library Atelier{% endblock %}
 
 {% block content %}
-<section class="mb-8 grid gap-5 lg:grid-cols-[1.7fr_1fr]">
-    <div class="rounded-[2rem] border border-stone-300/80 bg-stone-950 px-8 py-8 text-stone-50 shadow-xl shadow-stone-800/10">
-        <p class="mb-3 text-sm uppercase tracking-[0.35em] text-amber-300">Personal Library</p>
-        <h1 class="max-w-2xl text-4xl font-semibold leading-tight">Browse, import, and shape your collection without wrestling the tooling.</h1>
-        <p class="mt-4 max-w-2xl text-base text-stone-300">This first pass gives us SQLite-backed storage, one-click imports from `new_books`, searchable cards, categories, and a cleaner base to grow from.</p>
-    </div>
-
+<section class="mb-8 flex justify-end">
     <div class="rounded-[2rem] border border-stone-300 bg-white/90 p-6 shadow-lg shadow-stone-800/5">
         <p class="text-sm font-medium uppercase tracking-[0.3em] text-stone-500">Import Queue</p>
         <p class="mt-4 text-5xl font-semibold text-stone-900">{{ pending_imports }}</p>
