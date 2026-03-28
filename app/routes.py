@@ -233,11 +233,20 @@ def delete_category(category_id):
 
 @main.route("/import", methods=["POST"])
 def import_books():
-    result = import_new_books()
+    batch_size = request.form.get("batch_size", default=100, type=int) or 100
+    result = import_new_books(limit=batch_size)
     processed_count = len(result["processed"])
 
+    if result["remaining"] > 0:
+        return render_template(
+            "import_progress.html",
+            processed_count=processed_count,
+            remaining_count=result["remaining"],
+            batch_size=batch_size,
+        )
+
     if processed_count:
-        flash(f"Imported or updated {processed_count} book files.", "success")
+        flash(f"Imported or updated {processed_count} book files. Import queue is now complete.", "success")
     else:
         flash("No new supported book files were found to import.", "info")
 

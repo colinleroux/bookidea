@@ -1,0 +1,36 @@
+{% extends "base.html" %}
+
+{% block title %}Importing Books{% endblock %}
+
+{% block content %}
+<section class="mx-auto max-w-2xl rounded-[2rem] border border-sky-200 bg-white/90 p-8 shadow-lg shadow-sky-200/40">
+    <p class="text-sm uppercase tracking-[0.35em] text-sky-700">Import In Progress</p>
+    <h1 class="mt-2 text-3xl font-semibold text-slate-950">Working through your library in batches</h1>
+    <p class="mt-4 text-slate-600">
+        Imported {{ processed_count }} books in the latest batch.
+        {{ remaining_count }} supported files are still waiting in the queue.
+    </p>
+
+    <div class="mt-6 h-3 w-full overflow-hidden rounded-full bg-sky-100">
+        <div class="h-full w-2/3 animate-pulse rounded-full bg-sky-500"></div>
+    </div>
+
+    <form id="continue-import" action="{{ url_for('main.import_books') }}" method="post" class="mt-8">
+        <input type="hidden" name="batch_size" value="{{ batch_size }}">
+        <button type="submit" class="rounded-full bg-sky-600 px-5 py-3 text-sm font-semibold text-white transition hover:bg-sky-500">
+            Continue Import
+        </button>
+    </form>
+
+    <p class="mt-4 text-sm text-slate-500">The next batch will start automatically in a moment.</p>
+</section>
+
+<script>
+    window.setTimeout(function () {
+        var form = document.getElementById("continue-import");
+        if (form) {
+            form.submit();
+        }
+    }, 800);
+</script>
+{% endblock %}

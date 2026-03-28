@@ -306,16 +306,20 @@ def should_mark_for_review(book):
     return any(missing_core_fields)
 
 
-def import_new_books():
+def import_new_books(limit=None):
     source_dir = Path(current_app.config["NEW_BOOKS_DIR"])
     library_dir = Path(current_app.config["LIBRARY_DIR"])
 
     processed = []
     skipped = []
+    processed_count = 0
 
     for file_path in sorted(source_dir.iterdir()):
         if not file_path.is_file() or file_path.suffix.lower() not in SUPPORTED_EXTENSIONS:
             continue
+
+        if limit is not None and processed_count >= limit:
+            break
 
         metadata = extract_metadata(file_path)
         metadata["source_stem"] = file_path.stem
@@ -350,6 +354,16 @@ def import_new_books():
             action = "updated"
 
         processed.append({"title": book.title, "author": book.author, "action": action})
+        processed_count += 1
 
     db.session.commit()
-    return {"processed": processed, "skipped": skipped}
+    remaining = count_pending_import_files(source_dir)
+    return {"processed": processed, "skipped": skipped, "remaining": remaining}
+
+
+def count_pending_import_files(source_dir):
+    count = 0
+    for file_path in source_dir.iterdir():
+        if file_path.is_file() and file_path.suffix.lower() in SUPPORTED_EXTENSIONS:
+            count += 1
+    return count
