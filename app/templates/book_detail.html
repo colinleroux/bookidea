@@ -4,41 +4,41 @@
 
 {% block content %}
 <section class="grid gap-8 lg:grid-cols-[360px_1fr]">
-    <div class="overflow-hidden rounded-[2rem] border border-stone-300 bg-white shadow-lg shadow-stone-800/5">
-        <div class="aspect-[4/5] bg-stone-200">
+    <div class="overflow-hidden rounded-[2rem] border border-sky-200 bg-white shadow-lg shadow-sky-200/40">
+        <div class="aspect-[4/5] bg-slate-100">
             <img src="{{ url_for('main.book_cover', book_id=book.id) }}" alt="Cover for {{ book.title }}" class="h-full w-full object-cover">
         </div>
     </div>
 
-    <div class="rounded-[2rem] border border-stone-300 bg-white/90 p-8 shadow-lg shadow-stone-800/5">
-        <p class="text-sm uppercase tracking-[0.35em] text-stone-500">{{ book.primary_format }}</p>
-        <h1 class="mt-3 text-4xl font-semibold leading-tight text-stone-900">{{ book.title }}</h1>
+    <div class="rounded-[2rem] border border-sky-200 bg-white/90 p-8 shadow-lg shadow-sky-200/40">
+        <p class="text-sm uppercase tracking-[0.35em] text-sky-700">{{ book.primary_format }}</p>
+        <h1 class="mt-3 text-4xl font-semibold leading-tight text-slate-950">{{ book.title }}</h1>
         {% if book.subtitle %}
-            <p class="mt-2 text-lg text-stone-600">{{ book.subtitle }}</p>
+            <p class="mt-2 text-lg text-slate-600">{{ book.subtitle }}</p>
         {% endif %}
-        <p class="mt-4 text-lg text-stone-700">by {{ book.author }}</p>
+        <p class="mt-4 text-lg text-slate-700">by {{ book.author }}</p>
 
         <div class="mt-6 flex flex-wrap gap-3 text-sm">
-            {% if book.category %}<span class="rounded-full bg-stone-100 px-4 py-2 text-stone-700">{{ book.category.full_name() }}</span>{% endif %}
-            {% if book.needs_review %}<span class="rounded-full bg-amber-100 px-4 py-2 text-amber-800">Needs review</span>{% endif %}
-            {% if book.isbn %}<span class="rounded-full bg-stone-100 px-4 py-2 text-stone-700">ISBN {{ book.isbn }}</span>{% endif %}
-            {% if book.publisher %}<span class="rounded-full bg-stone-100 px-4 py-2 text-stone-700">{{ book.publisher }}</span>{% endif %}
-            {% if book.published_date %}<span class="rounded-full bg-stone-100 px-4 py-2 text-stone-700">{{ book.published_date }}</span>{% endif %}
-            {% if book.page_count %}<span class="rounded-full bg-stone-100 px-4 py-2 text-stone-700">{{ book.page_count }} pages</span>{% endif %}
-            {% if book.language %}<span class="rounded-full bg-stone-100 px-4 py-2 text-stone-700">{{ book.language|upper }}</span>{% endif %}
+            {% if book.category %}<span class="rounded-full bg-sky-100 px-4 py-2 text-sky-900">{{ book.category.full_name() }}</span>{% endif %}
+            {% if book.needs_review %}<span class="rounded-full bg-rose-100 px-4 py-2 text-rose-800">Needs review</span>{% endif %}
+            {% if book.isbn %}<span class="rounded-full bg-slate-100 px-4 py-2 text-slate-700">ISBN {{ book.isbn }}</span>{% endif %}
+            {% if book.publisher %}<span class="rounded-full bg-slate-100 px-4 py-2 text-slate-700">{{ book.publisher }}</span>{% endif %}
+            {% if book.published_date %}<span class="rounded-full bg-slate-100 px-4 py-2 text-slate-700">{{ book.published_date }}</span>{% endif %}
+            {% if book.page_count %}<span class="rounded-full bg-slate-100 px-4 py-2 text-slate-700">{{ book.page_count }} pages</span>{% endif %}
+            {% if book.language %}<span class="rounded-full bg-slate-100 px-4 py-2 text-slate-700">{{ book.language|upper }}</span>{% endif %}
         </div>
 
-        <div class="mt-8 border-t border-stone-200 pt-8">
-            <h2 class="text-sm font-semibold uppercase tracking-[0.3em] text-stone-500">Description</h2>
-            <p class="mt-4 max-w-3xl text-base leading-7 text-stone-700">{{ book.description or "No description has been imported yet for this book." }}</p>
+        <div class="mt-8 border-t border-sky-100 pt-8">
+            <h2 class="text-sm font-semibold uppercase tracking-[0.3em] text-sky-700">Description</h2>
+            <p class="mt-4 max-w-3xl text-base leading-7 text-slate-700">{{ book.description or "No description has been imported yet for this book." }}</p>
         </div>
 
-        <div class="mt-8 border-t border-stone-200 pt-8">
-            <h2 class="text-sm font-semibold uppercase tracking-[0.3em] text-stone-500">Files</h2>
+        <div class="mt-8 border-t border-sky-100 pt-8">
+            <h2 class="text-sm font-semibold uppercase tracking-[0.3em] text-sky-700">Files</h2>
             <div class="mt-4 flex flex-wrap gap-4">
-                <a href="{{ url_for('main.edit_book', book_id=book.id) }}" class="rounded-full border border-stone-300 px-5 py-3 text-sm font-semibold text-stone-700 transition hover:bg-stone-100">Edit book</a>
+                <a href="{{ url_for('main.edit_book', book_id=book.id) }}" class="rounded-full border border-sky-200 px-5 py-3 text-sm font-semibold text-slate-700 transition hover:bg-sky-50">Edit book</a>
                 {% for label, filename in book.available_formats() %}
-                    <a href="{{ url_for('main.download_book_file', filename=filename) }}" class="rounded-full bg-amber-600 px-5 py-3 text-sm font-semibold text-white transition hover:bg-amber-500">Download {{ label }}</a>
+                    <a href="{{ url_for('main.download_book_file', filename=filename) }}" class="rounded-full bg-sky-600 px-5 py-3 text-sm font-semibold text-white transition hover:bg-sky-500">Download {{ label }}</a>
                 {% endfor %}
             </div>
         </div>
