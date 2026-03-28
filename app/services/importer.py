@@ -119,21 +119,40 @@ def ensure_placeholder_cover(book):
     slug = slugify(f"{book.title}-{book.author}")
     cover_path = covers_dir / f"{slug}.svg"
 
-    if not cover_path.exists():
+    should_refresh = False
+    if cover_path.exists() and cover_path.suffix.lower() == ".svg":
+        existing_svg = cover_path.read_text(encoding="utf-8")
+        should_refresh = "Personal Library Edition" in existing_svg
+
+    if not cover_path.exists() or should_refresh:
         title = escape_xml(book.title[:40])
         author = escape_xml(book.author[:40])
+        palette_seed = sum(ord(char) for char in f"{book.title}{book.author}")
+        palettes = [
+            ("#0f172a", "#2563eb", "#7dd3fc", "#f8fafc"),
+            ("#3f1d2e", "#db2777", "#f9a8d4", "#fff7ed"),
+            ("#172554", "#7c3aed", "#c4b5fd", "#fdf4ff"),
+            ("#052e16", "#16a34a", "#86efac", "#f0fdf4"),
+            ("#3b0764", "#f59e0b", "#fde68a", "#fffbeb"),
+        ]
+        bg_dark, bg_mid, accent, text_light = palettes[palette_seed % len(palettes)]
         svg = f"""<svg xmlns="http://www.w3.org/2000/svg" width="640" height="960" viewBox="0 0 640 960">
   <defs>
     <linearGradient id="bg" x1="0%" y1="0%" x2="100%" y2="100%">
-      <stop offset="0%" stop-color="#f4efe6" />
-      <stop offset="100%" stop-color="#d2c1a5" />
+      <stop offset="0%" stop-color="{bg_dark}" />
+      <stop offset="55%" stop-color="{bg_mid}" />
+      <stop offset="100%" stop-color="{accent}" />
     </linearGradient>
   </defs>
   <rect width="640" height="960" fill="url(#bg)" />
-  <rect x="42" y="42" width="556" height="876" rx="28" fill="none" stroke="#2f241f" stroke-width="4" />
-  <text x="320" y="320" text-anchor="middle" font-size="42" font-family="Georgia, serif" fill="#2f241f">{title}</text>
-  <text x="320" y="410" text-anchor="middle" font-size="26" font-family="Georgia, serif" fill="#5b463d">{author}</text>
-  <text x="320" y="820" text-anchor="middle" font-size="22" font-family="Arial, sans-serif" fill="#2f241f">Personal Library Edition</text>
+  <circle cx="520" cy="140" r="110" fill="{accent}" fill-opacity="0.18" />
+  <circle cx="130" cy="820" r="150" fill="{text_light}" fill-opacity="0.10" />
+  <rect x="42" y="42" width="556" height="876" rx="28" fill="none" stroke="{text_light}" stroke-opacity="0.45" stroke-width="4" />
+  <rect x="86" y="110" width="160" height="10" rx="5" fill="{text_light}" fill-opacity="0.65" />
+  <rect x="86" y="136" width="92" height="10" rx="5" fill="{text_light}" fill-opacity="0.35" />
+  <text x="320" y="330" text-anchor="middle" font-size="42" font-family="Georgia, serif" fill="{text_light}">{title}</text>
+  <text x="320" y="420" text-anchor="middle" font-size="26" font-family="Georgia, serif" fill="{text_light}" fill-opacity="0.82">{author}</text>
+  <text x="320" y="820" text-anchor="middle" font-size="22" font-family="Arial, sans-serif" fill="{text_light}" fill-opacity="0.88">Library Atelier Edition</text>
 </svg>
 """
         cover_path.write_text(svg, encoding="utf-8")

@@ -32,7 +32,7 @@
                 type="text"
                 name="q"
                 value="{{ query_text }}"
-                placeholder="Try ‘Python’, ‘Le Guin’, or an ISBN"
+                placeholder="Try 'Python', 'Le Guin', or an ISBN"
                 class="w-full rounded-2xl border border-stone-300 bg-stone-50 px-4 py-3 outline-none ring-0 transition focus:border-amber-600"
             >
         </label>
@@ -56,18 +56,18 @@
 
 <section>
     {% if books %}
-        <div class="grid gap-6 md:grid-cols-2 xl:grid-cols-3">
-                    {% for book in books %}
-                        <article class="overflow-hidden rounded-[2rem] border border-stone-300 bg-white shadow-lg shadow-stone-800/5 transition hover:-translate-y-1 hover:shadow-xl" x-data="{ expanded: false }">
-                            <div class="aspect-[4/5] overflow-hidden bg-stone-200">
+        <div class="grid gap-5 sm:grid-cols-2 lg:grid-cols-3 2xl:grid-cols-4">
+            {% for book in books %}
+                <article class="flex h-full flex-col overflow-hidden rounded-[1.6rem] border border-stone-300 bg-white shadow-lg shadow-stone-800/5 transition hover:-translate-y-1 hover:shadow-xl">
+                    <div class="aspect-[4/5] overflow-hidden bg-stone-200">
                         <img src="{{ url_for('main.book_cover', book_id=book.id) }}" alt="Cover for {{ book.title }}" class="h-full w-full object-cover">
-                            </div>
-                    <div class="p-6">
+                    </div>
+                    <div class="flex flex-1 flex-col p-4">
                         <div class="flex items-start justify-between gap-4">
                             <div>
                                 <p class="text-xs uppercase tracking-[0.25em] text-stone-500">{{ book.primary_format }}</p>
-                                <h2 class="mt-2 text-2xl font-semibold leading-tight text-stone-900">{{ book.title }}</h2>
-                                <p class="mt-2 text-sm text-stone-600">{{ book.author }}</p>
+                                <h2 class="mt-2 text-lg font-semibold leading-snug text-stone-900">{{ book.title }}</h2>
+                                <p class="mt-1 text-sm text-stone-600">{{ book.author }}</p>
                             </div>
                             <div class="flex flex-col items-end gap-2">
                                 {% if book.category %}
@@ -80,20 +80,20 @@
                         </div>
 
                         {% if book.description %}
-                            <p class="mt-4 text-sm leading-6 text-stone-700" x-show="expanded">{{ book.description }}</p>
-                            <button type="button" class="mt-3 text-sm font-semibold text-amber-700" @click="expanded = !expanded" x-text="expanded ? 'Hide description' : 'Show description'"></button>
+                            <p class="mt-3 text-sm leading-6 text-stone-700">{{ book.description[:110] }}{% if book.description|length > 110 %}...{% endif %}</p>
                         {% endif %}
 
-                        <div class="mt-5 flex flex-wrap gap-2 text-xs text-stone-600">
+                        <div class="mt-4 flex flex-wrap gap-2 text-xs text-stone-600">
                             {% if book.isbn %}<span class="rounded-full bg-stone-100 px-3 py-1">ISBN {{ book.isbn }}</span>{% endif %}
-                            {% if book.publisher %}<span class="rounded-full bg-stone-100 px-3 py-1">{{ book.publisher }}</span>{% endif %}
                             {% if book.published_date %}<span class="rounded-full bg-stone-100 px-3 py-1">{{ book.published_date }}</span>{% endif %}
                         </div>
 
-                        <div class="mt-6 flex items-center justify-between">
-                            <a href="{{ url_for('main.book_detail', book_id=book.id) }}" class="text-sm font-semibold text-stone-900">View details</a>
-                            <div class="flex flex-wrap gap-3">
+                        <div class="mt-auto pt-5">
+                            <div class="flex items-center justify-between">
+                                <a href="{{ url_for('main.book_detail', book_id=book.id) }}" class="text-sm font-semibold text-stone-900">View details</a>
                                 <a href="{{ url_for('main.edit_book', book_id=book.id) }}" class="text-sm font-medium text-stone-700">Edit</a>
+                            </div>
+                            <div class="mt-3 flex flex-wrap gap-3">
                                 {% for label, filename in book.available_formats() %}
                                     <a href="{{ url_for('main.download_book_file', filename=filename) }}" class="text-sm font-medium text-amber-700">{{ label }}</a>
                                 {% endfor %}
@@ -106,7 +106,7 @@
     {% else %}
         <div class="rounded-[2rem] border border-dashed border-stone-400 bg-white/70 px-8 py-12 text-center">
             <h2 class="text-2xl font-semibold text-stone-900">No books match the current filters.</h2>
-            <p class="mt-3 text-stone-600">Drop a few PDF or EPUB files into `data/new_books`, import them, and we’ll start building out the collection.</p>
+            <p class="mt-3 text-stone-600">Drop a few PDF or EPUB files into `data/new_books`, import them, and we'll start building out the collection.</p>
         </div>
     {% endif %}
 </section>

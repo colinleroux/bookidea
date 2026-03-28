@@ -187,9 +187,15 @@ def download_book_file(filename):
 def book_cover(book_id):
     book = Book.query.get_or_404(book_id)
 
-    if not book.cover_image or not cover_file_path(book.cover_image) or not cover_file_path(book.cover_image).exists():
+    cover_path = cover_file_path(book.cover_image) if book.cover_image else None
+    if not book.cover_image or not cover_path or not cover_path.exists():
         book.cover_image = ensure_placeholder_cover(book)
         db.session.commit()
+    elif cover_path.suffix.lower() == ".svg":
+        refreshed_cover = ensure_placeholder_cover(book)
+        if refreshed_cover != book.cover_image:
+            book.cover_image = refreshed_cover
+            db.session.commit()
 
     return send_from_directory(current_app.config["COVERS_DIR"], Path(book.cover_image).name)
 
