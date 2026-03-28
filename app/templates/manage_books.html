@@ -53,7 +53,7 @@
                                 <div class="flex flex-wrap gap-3 text-sm font-medium">
                                     <a href="{{ url_for('main.book_detail', book_id=book.id) }}" class="text-stone-900">View</a>
                                     <a href="{{ url_for('main.edit_book', book_id=book.id) }}" class="text-amber-700">Edit</a>
-                                    <form action="{{ url_for('main.delete_book', book_id=book.id) }}" method="post" onsubmit="return confirm('Delete this book?');">
+                                    <form action="{{ url_for('main.delete_book', book_id=book.id) }}" method="post" onsubmit="return confirm('Delete this book from the database?');">
                                         <button type="submit" class="text-rose-700">Delete</button>
                                     </form>
                                 </div>

@@ -114,9 +114,17 @@ def edit_book(book_id):
 @main.route("/manage/books/<int:book_id>/delete", methods=["POST"])
 def delete_book(book_id):
     book = Book.query.get_or_404(book_id)
+    delete_files = request.form.get("delete_files") == "on"
+
+    if delete_files:
+        delete_book_files(book)
+
     db.session.delete(book)
     db.session.commit()
-    flash("Book deleted.", "success")
+    if delete_files:
+        flash("Book and associated files deleted.", "success")
+    else:
+        flash("Book deleted from the database.", "success")
     return redirect(url_for("main.manage_books"))
 
 
@@ -272,6 +280,16 @@ def parse_float(value):
         return float(value)
     except ValueError:
         return None
+
+
+def delete_book_files(book):
+    library_dir = Path(current_app.config["LIBRARY_DIR"])
+    for filename in (book.pdf_filename, book.epub_filename, book.mobi_filename):
+        if not filename:
+            continue
+        file_path = library_dir / filename
+        if file_path.exists() and file_path.is_file():
+            file_path.unlink()
 
 
 def save_uploaded_cover(book, uploaded_cover):

@@ -60,7 +60,9 @@
             {% for book in books %}
                 <article class="flex h-full flex-col overflow-hidden rounded-[1.6rem] border border-stone-300 bg-white shadow-lg shadow-stone-800/5 transition hover:-translate-y-1 hover:shadow-xl">
                     <div class="aspect-[4/5] overflow-hidden bg-stone-200">
-                        <img src="{{ url_for('main.book_cover', book_id=book.id) }}" alt="Cover for {{ book.title }}" class="h-full w-full object-cover">
+                        <a href="{{ url_for('main.book_detail', book_id=book.id) }}" class="block h-full w-full">
+                            <img src="{{ url_for('main.book_cover', book_id=book.id) }}" alt="Cover for {{ book.title }}" class="h-full w-full object-cover">
+                        </a>
                     </div>
                     <div class="flex flex-1 flex-col p-4">
                         <div class="flex items-start justify-between gap-4">

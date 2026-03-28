@@ -106,5 +106,19 @@
             <a href="{{ url_for('main.manage_books') }}" class="rounded-full border border-stone-300 px-6 py-3 text-sm font-semibold text-stone-700 transition hover:bg-stone-100">Cancel</a>
         </div>
     </form>
+
+    {% if book %}
+        <div class="mt-8 border-t border-stone-200 pt-6">
+            <h2 class="text-sm font-semibold uppercase tracking-[0.3em] text-stone-500">Danger Zone</h2>
+            <p class="mt-3 max-w-2xl text-sm text-stone-600">Delete only the database record, or also remove the stored book files from `data/books` at the same time.</p>
+            <form method="post" action="{{ url_for('main.delete_book', book_id=book.id) }}" class="mt-5 flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between" onsubmit="return confirm(this.querySelector('input[name=delete_files]').checked ? 'Delete this book and its stored files?' : 'Delete this book from the database?');">
+                <label class="flex items-center gap-3 text-sm font-medium text-stone-700">
+                    <input type="checkbox" name="delete_files" class="h-4 w-4 rounded border-stone-300">
+                    <span>Delete actual PDF/EPUB/MOBI files too</span>
+                </label>
+                <button type="submit" class="rounded-full bg-rose-700 px-6 py-3 text-sm font-semibold text-white transition hover:bg-rose-600">Delete Book</button>
+            </form>
+        </div>
+    {% endif %}
 </section>
 {% endblock %}
