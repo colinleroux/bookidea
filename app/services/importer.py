@@ -175,6 +175,16 @@ def assign_format_filename(book, extension, filename):
         book.mobi_filename = filename
 
 
+def should_mark_for_review(book):
+    missing_core_fields = [
+        not book.description,
+        not book.isbn,
+        book.author == "Unknown",
+        not (book.category_id or False),
+    ]
+    return any(missing_core_fields)
+
+
 def import_new_books():
     source_dir = Path(current_app.config["NEW_BOOKS_DIR"])
     library_dir = Path(current_app.config["LIBRARY_DIR"])
@@ -206,6 +216,7 @@ def import_new_books():
         book.language = metadata.get("language") or book.language
         book.page_count = metadata.get("page_count") or book.page_count
         assign_format_filename(book, destination.suffix.lower(), destination.name)
+        book.needs_review = should_mark_for_review(book)
 
         if not book.cover_image:
             book.cover_image = ensure_placeholder_cover(book)

@@ -38,6 +38,7 @@ class Book(db.Model):
     language = db.Column(db.String(32))
     page_count = db.Column(db.Integer)
     rating = db.Column(db.Float)
+    needs_review = db.Column(db.Boolean, nullable=False, default=True)
 
     category_id = db.Column(db.Integer, db.ForeignKey("category.id"), nullable=True)
     category = db.relationship("Category", backref=db.backref("books", lazy="select"))
