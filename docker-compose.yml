@@ -1,6 +1,9 @@
 services:
   web:
-    build: .
+    build:
+      context: .
+      args:
+        INSTALL_CALIBRE: ${INSTALL_CALIBRE:-0}
     ports:
       - "8008:8000"
     environment:
@@ -9,6 +12,7 @@ services:
       LIBRARY_DIR: /app/data/books
       NEW_BOOKS_DIR: /app/data/new_books
       COVERS_DIR: /app/data/covers
+      CALIBRE_EBOOK_META: ${CALIBRE_EBOOK_META:-}
     volumes:
       - .:/app
       - ./data:/app/data

@@ -1,5 +1,7 @@
 import re
+import shutil as shutil_module
 import shutil
+import subprocess
 from pathlib import Path
 from xml.sax.saxutils import escape
 
@@ -102,6 +104,8 @@ def _extract_epub_identifier(book):
 
 def extract_metadata(file_path):
     metadata = parse_filename(file_path)
+    calibre_metadata = extract_calibre_metadata(file_path)
+    metadata.update({k: v for k, v in calibre_metadata.items() if v})
     extension = file_path.suffix.lower()
 
     if extension == ".pdf":
@@ -112,6 +116,86 @@ def extract_metadata(file_path):
     metadata["title"] = metadata.get("title") or file_path.stem
     metadata["author"] = metadata.get("author") or "Unknown"
     return metadata
+
+
+def calibre_command():
+    configured_path = current_app.config.get("CALIBRE_EBOOK_META", "")
+    if configured_path:
+        candidate = Path(configured_path)
+        if candidate.exists():
+            return str(candidate)
+
+    return shutil_module.which("ebook-meta")
+
+
+def extract_calibre_metadata(file_path):
+    command = calibre_command()
+    if not command:
+        return {}
+
+    try:
+        result = subprocess.run(
+            [command, str(file_path)],
+            capture_output=True,
+            text=True,
+            check=False,
+            timeout=20,
+        )
+    except Exception:
+        return {}
+
+    if result.returncode != 0:
+        return {}
+
+    metadata = {}
+    field_map = {
+        "title": "title",
+        "author(s)": "author",
+        "publisher": "publisher",
+        "comments": "description",
+        "isbn": "isbn",
+        "languages": "language",
+        "published": "published_date",
+    }
+
+    for line in result.stdout.splitlines():
+        if ":" not in line:
+            continue
+        key, value = line.split(":", 1)
+        normalized_key = key.strip().lower()
+        mapped_field = field_map.get(normalized_key)
+        if mapped_field and value.strip():
+            metadata[mapped_field] = value.strip()
+
+    return metadata
+
+
+def extract_cover_with_calibre(file_path, book):
+    command = calibre_command()
+    if not command:
+        return None
+
+    covers_dir = Path(current_app.config["COVERS_DIR"])
+    slug = slugify(f"{book.title}-{book.author}")
+    destination = covers_dir / f"{slug}.jpg"
+
+    try:
+        result = subprocess.run(
+            [command, str(file_path), "--get-cover", str(destination)],
+            capture_output=True,
+            text=True,
+            check=False,
+            timeout=30,
+        )
+    except Exception:
+        return None
+
+    if result.returncode != 0 or not destination.exists() or destination.stat().st_size == 0:
+        if destination.exists():
+            destination.unlink(missing_ok=True)
+        return None
+
+    return f"covers/{destination.name}"
 
 
 def ensure_placeholder_cover(book):
@@ -257,7 +341,7 @@ def import_new_books():
         book.needs_review = should_mark_for_review(book)
 
         if not book.cover_image:
-            book.cover_image = ensure_placeholder_cover(book)
+            book.cover_image = extract_cover_with_calibre(destination, book) or ensure_placeholder_cover(book)
 
         if existing_book is None:
             db.session.add(book)
