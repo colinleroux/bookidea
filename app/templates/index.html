@@ -1,31 +1,103 @@
-<!DOCTYPE html>
-<html>
-<head>
-    <title>Library</title>
-    <script src="https://cdn.tailwindcss.com"></script>
-</head>
-<body class="bg-gray-100">
+{% extends "base.html" %}
 
-<div class="container mx-auto p-6">
-    <h1 class="text-3xl font-bold mb-6">My Library</h1>
+{% block title %}Library Atelier{% endblock %}
 
-    <div class="grid grid-cols-1 md:grid-cols-3 gap-6">
-        {% for book in books %}
-        <div class="bg-white shadow rounded-xl p-4">
-            <h2 class="text-xl font-semibold">{{ book.title }}</h2>
-            <p>Author: {{ book.author }}</p>
-            <p>ISBN: {{ book.isbn }}</p>
-            <p class="text-sm mt-2">{{ book.description }}</p>
-
-            <a href="{{ book.file_path }}" target="_blank">Open File</a>
-
-            {% if book.category %}
-            <span>{{ book.category }}</span>
-            {% endif %}
-        </div>
-        {% endfor %}
+{% block content %}
+<section class="mb-8 grid gap-5 lg:grid-cols-[1.7fr_1fr]">
+    <div class="rounded-[2rem] border border-stone-300/80 bg-stone-950 px-8 py-8 text-stone-50 shadow-xl shadow-stone-800/10">
+        <p class="mb-3 text-sm uppercase tracking-[0.35em] text-amber-300">Personal Library</p>
+        <h1 class="max-w-2xl text-4xl font-semibold leading-tight">Browse, import, and shape your collection without wrestling the tooling.</h1>
+        <p class="mt-4 max-w-2xl text-base text-stone-300">This first pass gives us SQLite-backed storage, one-click imports from `new_books`, searchable cards, categories, and a cleaner base to grow from.</p>
     </div>
-</div>
 
-</body>
-</html>
+    <div class="rounded-[2rem] border border-stone-300 bg-white/90 p-6 shadow-lg shadow-stone-800/5">
+        <p class="text-sm font-medium uppercase tracking-[0.3em] text-stone-500">Import Queue</p>
+        <p class="mt-4 text-5xl font-semibold text-stone-900">{{ pending_imports }}</p>
+        <p class="mt-2 text-sm text-stone-600">Supported files waiting in `data/new_books`.</p>
+        <form action="{{ url_for('main.import_books') }}" method="post" class="mt-6">
+            <button type="submit" class="inline-flex items-center rounded-full bg-amber-600 px-5 py-3 text-sm font-semibold text-white transition hover:bg-amber-500">Import New Books</button>
+        </form>
+    </div>
+</section>
+
+<section class="mb-8 rounded-[2rem] border border-stone-300 bg-white/85 p-5 shadow-lg shadow-stone-800/5">
+    <form method="get" class="grid gap-4 lg:grid-cols-[1.5fr_1fr_auto]">
+        <label class="block">
+            <span class="mb-2 block text-sm font-medium text-stone-700">Search by title, author, or ISBN</span>
+            <input
+                type="text"
+                name="q"
+                value="{{ query_text }}"
+                placeholder="Try ‘Python’, ‘Le Guin’, or an ISBN"
+                class="w-full rounded-2xl border border-stone-300 bg-stone-50 px-4 py-3 outline-none ring-0 transition focus:border-amber-600"
+            >
+        </label>
+
+        <label class="block">
+            <span class="mb-2 block text-sm font-medium text-stone-700">Filter by category</span>
+            <select name="category" class="w-full rounded-2xl border border-stone-300 bg-stone-50 px-4 py-3 outline-none transition focus:border-amber-600">
+                <option value="">All categories</option>
+                {% for category in categories %}
+                    <option value="{{ category.id }}" {% if selected_category and selected_category.id == category.id %}selected{% endif %}>{{ category.full_name() }}</option>
+                {% endfor %}
+            </select>
+        </label>
+
+        <div class="flex items-end gap-3">
+            <button type="submit" class="rounded-full bg-stone-900 px-5 py-3 text-sm font-semibold text-white transition hover:bg-stone-700">Apply</button>
+            <a href="{{ url_for('main.index') }}" class="rounded-full border border-stone-300 px-5 py-3 text-sm font-semibold text-stone-700 transition hover:bg-stone-100">Reset</a>
+        </div>
+    </form>
+</section>
+
+<section>
+    {% if books %}
+        <div class="grid gap-6 md:grid-cols-2 xl:grid-cols-3">
+            {% for book in books %}
+                <article class="overflow-hidden rounded-[2rem] border border-stone-300 bg-white shadow-lg shadow-stone-800/5 transition hover:-translate-y-1 hover:shadow-xl" x-data="{ expanded: false }">
+                    <div class="aspect-[4/5] overflow-hidden bg-stone-200">
+                        <img src="{{ url_for('main.cover_image', filename=book.cover_image.split('/')[-1]) if book.cover_image else '' }}" alt="Cover for {{ book.title }}" class="h-full w-full object-cover">
+                    </div>
+                    <div class="p-6">
+                        <div class="flex items-start justify-between gap-4">
+                            <div>
+                                <p class="text-xs uppercase tracking-[0.25em] text-stone-500">{{ book.primary_format }}</p>
+                                <h2 class="mt-2 text-2xl font-semibold leading-tight text-stone-900">{{ book.title }}</h2>
+                                <p class="mt-2 text-sm text-stone-600">{{ book.author }}</p>
+                            </div>
+                            {% if book.category %}
+                                <span class="rounded-full bg-stone-100 px-3 py-1 text-xs font-medium text-stone-700">{{ book.category.name }}</span>
+                            {% endif %}
+                        </div>
+
+                        {% if book.description %}
+                            <p class="mt-4 text-sm leading-6 text-stone-700" x-show="expanded">{{ book.description }}</p>
+                            <button type="button" class="mt-3 text-sm font-semibold text-amber-700" @click="expanded = !expanded" x-text="expanded ? 'Hide description' : 'Show description'"></button>
+                        {% endif %}
+
+                        <div class="mt-5 flex flex-wrap gap-2 text-xs text-stone-600">
+                            {% if book.isbn %}<span class="rounded-full bg-stone-100 px-3 py-1">ISBN {{ book.isbn }}</span>{% endif %}
+                            {% if book.publisher %}<span class="rounded-full bg-stone-100 px-3 py-1">{{ book.publisher }}</span>{% endif %}
+                            {% if book.published_date %}<span class="rounded-full bg-stone-100 px-3 py-1">{{ book.published_date }}</span>{% endif %}
+                        </div>
+
+                        <div class="mt-6 flex items-center justify-between">
+                            <a href="{{ url_for('main.book_detail', book_id=book.id) }}" class="text-sm font-semibold text-stone-900">View details</a>
+                            <div class="flex gap-3">
+                                {% for label, filename in book.available_formats() %}
+                                    <a href="{{ url_for('main.download_book_file', filename=filename) }}" class="text-sm font-medium text-amber-700">{{ label }}</a>
+                                {% endfor %}
+                            </div>
+                        </div>
+                    </div>
+                </article>
+            {% endfor %}
+        </div>
+    {% else %}
+        <div class="rounded-[2rem] border border-dashed border-stone-400 bg-white/70 px-8 py-12 text-center">
+            <h2 class="text-2xl font-semibold text-stone-900">No books match the current filters.</h2>
+            <p class="mt-3 text-stone-600">Drop a few PDF or EPUB files into `data/new_books`, import them, and we’ll start building out the collection.</p>
+        </div>
+    {% endif %}
+</section>
+{% endblock %}

@@ -2,26 +2,13 @@ services:
   web:
     build: .
     ports:
-      - "5000"
+      - "8008:8000"
+    environment:
+      DATABASE_PATH: /app/data/library.db
+      DATA_DIR: /app/data
+      LIBRARY_DIR: /app/data/books
+      NEW_BOOKS_DIR: /app/data/new_books
+      COVERS_DIR: /app/data/covers
     volumes:
       - .:/app
-      - ./books:/books
-    depends_on:
-      - db
-
-  db:
-    image: postgres:15
-    environment:
-      POSTGRES_DB: books
-      POSTGRES_USER: postgres
-      POSTGRES_PASSWORD: postgres
-
-  nginx:
-    image: nginx:latest
-    ports:
-      - "5000:5000"
-    volumes:
-      - ./nginx/default.conf:/etc/nginx/conf.d/default.conf
-      - ./books:/books
-    depends_on:
-      - web
+      - ./data:/app/data

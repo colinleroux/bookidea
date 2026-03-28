@@ -1,0 +1,9 @@
+__pycache__/
+*.pyc
+data/*.db
+data/books/*
+data/covers/*
+data/new_books/*
+!data/books/.gitkeep
+!data/covers/.gitkeep
+!data/new_books/.gitkeep
