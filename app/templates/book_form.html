@@ -1,0 +1,105 @@
+{% extends "base.html" %}
+
+{% block title %}{{ page_title }}{% endblock %}
+
+{% block content %}
+<section class="mb-8">
+    <p class="text-sm uppercase tracking-[0.35em] text-stone-500">Management</p>
+    <h1 class="mt-2 text-4xl font-semibold text-stone-900">{{ page_title }}</h1>
+    <p class="mt-3 max-w-3xl text-stone-600">Use this form to fill in missing metadata, organise files, and mark whether a book still needs review.</p>
+</section>
+
+<section class="rounded-[2rem] border border-stone-300 bg-white/90 p-6 shadow-lg shadow-stone-800/5">
+    <form method="post" action="{{ form_action }}" class="grid gap-5 lg:grid-cols-2">
+        <label class="block">
+            <span class="mb-2 block text-sm font-medium text-stone-700">Title</span>
+            <input type="text" name="title" value="{{ book.title if book else '' }}" required class="w-full rounded-2xl border border-stone-300 bg-stone-50 px-4 py-3">
+        </label>
+
+        <label class="block">
+            <span class="mb-2 block text-sm font-medium text-stone-700">Subtitle</span>
+            <input type="text" name="subtitle" value="{{ book.subtitle if book else '' }}" class="w-full rounded-2xl border border-stone-300 bg-stone-50 px-4 py-3">
+        </label>
+
+        <label class="block">
+            <span class="mb-2 block text-sm font-medium text-stone-700">Author</span>
+            <input type="text" name="author" value="{{ book.author if book else '' }}" class="w-full rounded-2xl border border-stone-300 bg-stone-50 px-4 py-3">
+        </label>
+
+        <label class="block">
+            <span class="mb-2 block text-sm font-medium text-stone-700">Category</span>
+            <select name="category_id" class="w-full rounded-2xl border border-stone-300 bg-stone-50 px-4 py-3">
+                <option value="">Unsorted</option>
+                {% for category in categories %}
+                    <option value="{{ category.id }}" {% if book and book.category_id == category.id %}selected{% endif %}>{{ category.full_name() }}</option>
+                {% endfor %}
+            </select>
+        </label>
+
+        <label class="block">
+            <span class="mb-2 block text-sm font-medium text-stone-700">ISBN</span>
+            <input type="text" name="isbn" value="{{ book.isbn if book else '' }}" class="w-full rounded-2xl border border-stone-300 bg-stone-50 px-4 py-3">
+        </label>
+
+        <label class="block">
+            <span class="mb-2 block text-sm font-medium text-stone-700">Publisher</span>
+            <input type="text" name="publisher" value="{{ book.publisher if book else '' }}" class="w-full rounded-2xl border border-stone-300 bg-stone-50 px-4 py-3">
+        </label>
+
+        <label class="block">
+            <span class="mb-2 block text-sm font-medium text-stone-700">Published Date</span>
+            <input type="text" name="published_date" value="{{ book.published_date if book else '' }}" placeholder="2024 or 2024-10-03" class="w-full rounded-2xl border border-stone-300 bg-stone-50 px-4 py-3">
+        </label>
+
+        <label class="block">
+            <span class="mb-2 block text-sm font-medium text-stone-700">Language</span>
+            <input type="text" name="language" value="{{ book.language if book else '' }}" class="w-full rounded-2xl border border-stone-300 bg-stone-50 px-4 py-3">
+        </label>
+
+        <label class="block">
+            <span class="mb-2 block text-sm font-medium text-stone-700">Page Count</span>
+            <input type="number" name="page_count" value="{{ book.page_count if book and book.page_count is not none else '' }}" class="w-full rounded-2xl border border-stone-300 bg-stone-50 px-4 py-3">
+        </label>
+
+        <label class="block">
+            <span class="mb-2 block text-sm font-medium text-stone-700">Rating</span>
+            <input type="number" step="0.1" min="0" max="5" name="rating" value="{{ book.rating if book and book.rating is not none else '' }}" class="w-full rounded-2xl border border-stone-300 bg-stone-50 px-4 py-3">
+        </label>
+
+        <label class="block lg:col-span-2">
+            <span class="mb-2 block text-sm font-medium text-stone-700">Description</span>
+            <textarea name="description" rows="6" class="w-full rounded-2xl border border-stone-300 bg-stone-50 px-4 py-3">{{ book.description if book else '' }}</textarea>
+        </label>
+
+        <label class="block">
+            <span class="mb-2 block text-sm font-medium text-stone-700">PDF Filename</span>
+            <input type="text" name="pdf_filename" value="{{ book.pdf_filename if book else '' }}" placeholder="Stored in data/books" class="w-full rounded-2xl border border-stone-300 bg-stone-50 px-4 py-3">
+        </label>
+
+        <label class="block">
+            <span class="mb-2 block text-sm font-medium text-stone-700">EPUB Filename</span>
+            <input type="text" name="epub_filename" value="{{ book.epub_filename if book else '' }}" placeholder="Stored in data/books" class="w-full rounded-2xl border border-stone-300 bg-stone-50 px-4 py-3">
+        </label>
+
+        <label class="block">
+            <span class="mb-2 block text-sm font-medium text-stone-700">MOBI Filename</span>
+            <input type="text" name="mobi_filename" value="{{ book.mobi_filename if book else '' }}" placeholder="Stored in data/books" class="w-full rounded-2xl border border-stone-300 bg-stone-50 px-4 py-3">
+        </label>
+
+        <label class="block">
+            <span class="mb-2 block text-sm font-medium text-stone-700">Cover Image</span>
+            <input type="text" name="cover_image" value="{{ book.cover_image if book else '' }}" placeholder="covers/example.svg" class="w-full rounded-2xl border border-stone-300 bg-stone-50 px-4 py-3">
+        </label>
+
+        <label class="flex items-center gap-3 lg:col-span-2">
+            <input type="checkbox" name="needs_review" {% if not book or book.needs_review %}checked{% endif %} class="h-4 w-4 rounded border-stone-300">
+            <span class="text-sm font-medium text-stone-700">This book still needs manual review</span>
+        </label>
+
+        <div class="flex flex-wrap gap-3 lg:col-span-2">
+            <button type="submit" class="rounded-full bg-stone-900 px-6 py-3 text-sm font-semibold text-white transition hover:bg-stone-700">Save Book</button>
+            <a href="{{ url_for('main.manage_books') }}" class="rounded-full border border-stone-300 px-6 py-3 text-sm font-semibold text-stone-700 transition hover:bg-stone-100">Cancel</a>
+        </div>
+    </form>
+</section>
+{% endblock %}

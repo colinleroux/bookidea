@@ -1,0 +1,70 @@
+{% extends "base.html" %}
+
+{% block title %}Manage Books{% endblock %}
+
+{% block content %}
+<section class="mb-8 flex flex-wrap items-end justify-between gap-4">
+    <div>
+        <p class="text-sm uppercase tracking-[0.35em] text-stone-500">Management</p>
+        <h1 class="mt-2 text-4xl font-semibold text-stone-900">{% if review_only %}Books Needing Review{% else %}Manage Books{% endif %}</h1>
+        <p class="mt-3 max-w-2xl text-stone-600">Correct imported metadata, add books manually, and keep the library tidy without leaving the app.</p>
+    </div>
+    <div class="flex flex-wrap gap-3">
+        <a href="{{ url_for('main.new_book') }}" class="rounded-full bg-stone-900 px-5 py-3 text-sm font-semibold text-white transition hover:bg-stone-700">Add Book</a>
+        {% if review_only %}
+            <a href="{{ url_for('main.manage_books') }}" class="rounded-full border border-stone-300 px-5 py-3 text-sm font-semibold text-stone-700 transition hover:bg-stone-100">View All Books</a>
+        {% else %}
+            <a href="{{ url_for('main.manage_books', review=1) }}" class="rounded-full border border-stone-300 px-5 py-3 text-sm font-semibold text-stone-700 transition hover:bg-stone-100">Review Imported Books</a>
+        {% endif %}
+    </div>
+</section>
+
+<section class="rounded-[2rem] border border-stone-300 bg-white/90 p-5 shadow-lg shadow-stone-800/5">
+    {% if books %}
+        <div class="overflow-x-auto">
+            <table class="min-w-full divide-y divide-stone-200 text-left">
+                <thead>
+                    <tr class="text-sm uppercase tracking-[0.2em] text-stone-500">
+                        <th class="px-4 py-3">Book</th>
+                        <th class="px-4 py-3">Category</th>
+                        <th class="px-4 py-3">Formats</th>
+                        <th class="px-4 py-3">Status</th>
+                        <th class="px-4 py-3">Actions</th>
+                    </tr>
+                </thead>
+                <tbody class="divide-y divide-stone-200">
+                    {% for book in books %}
+                        <tr class="align-top">
+                            <td class="px-4 py-4">
+                                <p class="font-semibold text-stone-900">{{ book.title }}</p>
+                                <p class="mt-1 text-sm text-stone-600">{{ book.author }}</p>
+                                {% if book.isbn %}<p class="mt-1 text-xs text-stone-500">ISBN {{ book.isbn }}</p>{% endif %}
+                            </td>
+                            <td class="px-4 py-4 text-sm text-stone-700">{{ book.category.full_name() if book.category else "Unsorted" }}</td>
+                            <td class="px-4 py-4 text-sm text-stone-700">{{ book.available_formats()|map(attribute=0)|join(", ") or "None" }}</td>
+                            <td class="px-4 py-4">
+                                {% if book.needs_review %}
+                                    <span class="rounded-full bg-amber-100 px-3 py-1 text-xs font-medium text-amber-800">Needs review</span>
+                                {% else %}
+                                    <span class="rounded-full bg-emerald-100 px-3 py-1 text-xs font-medium text-emerald-800">Ready</span>
+                                {% endif %}
+                            </td>
+                            <td class="px-4 py-4">
+                                <div class="flex flex-wrap gap-3 text-sm font-medium">
+                                    <a href="{{ url_for('main.book_detail', book_id=book.id) }}" class="text-stone-900">View</a>
+                                    <a href="{{ url_for('main.edit_book', book_id=book.id) }}" class="text-amber-700">Edit</a>
+                                    <form action="{{ url_for('main.delete_book', book_id=book.id) }}" method="post" onsubmit="return confirm('Delete this book?');">
+                                        <button type="submit" class="text-rose-700">Delete</button>
+                                    </form>
+                                </div>
+                            </td>
+                        </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    {% else %}
+        <p class="px-4 py-8 text-center text-stone-600">No books found for this view yet.</p>
+    {% endif %}
+</section>
+{% endblock %}

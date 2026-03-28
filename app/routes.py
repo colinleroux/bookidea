@@ -2,7 +2,6 @@ from pathlib import Path
 
 from flask import (
     Blueprint,
-    abort,
     current_app,
     flash,
     redirect,
@@ -13,8 +12,9 @@ from flask import (
 )
 from sqlalchemy import or_
 
+from app import db
 from app.models import Book, Category
-from app.services.importer import import_new_books
+from app.services.importer import import_new_books, slugify
 
 main = Blueprint("main", __name__)
 
@@ -42,12 +42,14 @@ def index():
     books = books_query.order_by(Book.title.asc()).all()
     categories = Category.query.order_by(Category.name.asc()).all()
     pending_imports = count_pending_imports()
+    review_count = Book.query.filter_by(needs_review=True).count()
 
     return render_template(
         "index.html",
         books=books,
         categories=categories,
         pending_imports=pending_imports,
+        review_count=review_count,
         query_text=query_text,
         selected_category=selected_category,
     )
@@ -57,6 +59,109 @@ def index():
 def book_detail(book_id):
     book = Book.query.get_or_404(book_id)
     return render_template("book_detail.html", book=book)
+
+
+@main.route("/manage/books")
+def manage_books():
+    review_only = request.args.get("review") == "1"
+    books_query = Book.query
+    if review_only:
+        books_query = books_query.filter_by(needs_review=True)
+
+    books = books_query.order_by(Book.created_at.desc()).all()
+    return render_template("manage_books.html", books=books, review_only=review_only)
+
+
+@main.route("/manage/books/new", methods=["GET", "POST"])
+def new_book():
+    if request.method == "POST":
+        book = Book()
+        populate_book_from_form(book, request.form)
+        db.session.add(book)
+        db.session.commit()
+        flash("Book created.", "success")
+        return redirect(url_for("main.manage_books"))
+
+    return render_template(
+        "book_form.html",
+        book=None,
+        categories=Category.query.order_by(Category.name.asc()).all(),
+        form_action=url_for("main.new_book"),
+        page_title="Add Book",
+    )
+
+
+@main.route("/manage/books/<int:book_id>/edit", methods=["GET", "POST"])
+def edit_book(book_id):
+    book = Book.query.get_or_404(book_id)
+
+    if request.method == "POST":
+        populate_book_from_form(book, request.form)
+        db.session.commit()
+        flash("Book updated.", "success")
+        return redirect(url_for("main.book_detail", book_id=book.id))
+
+    return render_template(
+        "book_form.html",
+        book=book,
+        categories=Category.query.order_by(Category.name.asc()).all(),
+        form_action=url_for("main.edit_book", book_id=book.id),
+        page_title=f"Edit {book.title}",
+    )
+
+
+@main.route("/manage/books/<int:book_id>/delete", methods=["POST"])
+def delete_book(book_id):
+    book = Book.query.get_or_404(book_id)
+    db.session.delete(book)
+    db.session.commit()
+    flash("Book deleted.", "success")
+    return redirect(url_for("main.manage_books"))
+
+
+@main.route("/manage/categories", methods=["GET", "POST"])
+def manage_categories():
+    if request.method == "POST":
+        name = request.form.get("name", "").strip()
+        parent_id = request.form.get("parent_id", type=int)
+
+        if not name:
+            flash("Category name is required.", "error")
+            return redirect(url_for("main.manage_categories"))
+
+        base_slug = slugify(name)
+        slug = base_slug
+        counter = 1
+        while Category.query.filter_by(slug=slug).first():
+            slug = f"{base_slug}-{counter}"
+            counter += 1
+
+        category = Category(name=name, slug=slug, parent_id=parent_id or None)
+        db.session.add(category)
+        db.session.commit()
+        flash("Category added.", "success")
+        return redirect(url_for("main.manage_categories"))
+
+    categories = Category.query.order_by(Category.name.asc()).all()
+    return render_template("manage_categories.html", categories=categories)
+
+
+@main.route("/manage/categories/<int:category_id>/delete", methods=["POST"])
+def delete_category(category_id):
+    category = Category.query.get_or_404(category_id)
+
+    if category.books:
+        flash("Category cannot be deleted while books still use it.", "error")
+        return redirect(url_for("main.manage_categories"))
+
+    if category.children:
+        flash("Category cannot be deleted while it still has subcategories.", "error")
+        return redirect(url_for("main.manage_categories"))
+
+    db.session.delete(category)
+    db.session.commit()
+    flash("Category deleted.", "success")
+    return redirect(url_for("main.manage_categories"))
 
 
 @main.route("/import", methods=["POST"])
@@ -99,3 +204,48 @@ def count_pending_imports():
         if file_path.is_file() and file_path.suffix.lower() in {".pdf", ".epub", ".mobi"}:
             count += 1
     return count
+
+
+def populate_book_from_form(book, form):
+    book.title = form.get("title", "").strip() or "Untitled"
+    book.subtitle = form.get("subtitle", "").strip() or None
+    book.author = form.get("author", "").strip() or "Unknown"
+    book.description = form.get("description", "").strip() or None
+    book.isbn = form.get("isbn", "").strip() or None
+    book.publisher = form.get("publisher", "").strip() or None
+    book.published_date = form.get("published_date", "").strip() or None
+    book.language = form.get("language", "").strip() or None
+    book.page_count = parse_int(form.get("page_count"))
+    book.rating = parse_float(form.get("rating"))
+    book.category_id = form.get("category_id", type=int) or None
+    book.pdf_filename = form.get("pdf_filename", "").strip() or None
+    book.epub_filename = form.get("epub_filename", "").strip() or None
+    book.mobi_filename = form.get("mobi_filename", "").strip() or None
+    book.cover_image = normalize_cover_path(form.get("cover_image", "").strip()) or book.cover_image
+    book.needs_review = form.get("needs_review") == "on"
+
+
+def normalize_cover_path(value):
+    if not value:
+        return None
+    if value.startswith("covers/"):
+        return value
+    return f"covers/{Path(value).name}"
+
+
+def parse_int(value):
+    if not value:
+        return None
+    try:
+        return int(value)
+    except ValueError:
+        return None
+
+
+def parse_float(value):
+    if not value:
+        return None
+    try:
+        return float(value)
+    except ValueError:
+        return None
