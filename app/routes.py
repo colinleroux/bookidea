@@ -16,6 +16,7 @@ from werkzeug.utils import secure_filename
 from app import db
 from app.models import Book, Category
 from app.services.importer import cover_file_path, ensure_placeholder_cover, import_new_books, slugify
+from app.services.online_metadata import fetch_metadata_by_isbn, save_cover_from_url
 
 main = Blueprint("main", __name__)
 
@@ -131,6 +132,43 @@ def delete_book(book_id):
     else:
         flash("Book deleted from the database.", "success")
     return redirect(url_for("main.manage_books"))
+
+
+@main.route("/manage/books/<int:book_id>/fetch-details", methods=["POST"])
+def fetch_book_details(book_id):
+    book = Book.query.get_or_404(book_id)
+
+    if not book.isbn:
+        flash("Add an ISBN before trying to fetch details online.", "error")
+        return redirect(url_for("main.edit_book", book_id=book.id))
+
+    metadata = fetch_metadata_by_isbn(book.isbn)
+    if not metadata:
+        flash("No online details were found for that ISBN.", "error")
+        return redirect(url_for("main.edit_book", book_id=book.id))
+
+    applied_fields = []
+    for field in ("title", "subtitle", "author", "publisher", "published_date", "page_count", "description"):
+        incoming = metadata.get(field)
+        existing = getattr(book, field)
+        if incoming and not existing:
+            setattr(book, field, incoming)
+            applied_fields.append(field)
+
+    if not book.cover_image and metadata.get("cover_url"):
+        saved_cover = save_cover_from_url(book, metadata["cover_url"])
+        if saved_cover:
+            book.cover_image = saved_cover
+            applied_fields.append("cover")
+
+    db.session.commit()
+
+    if applied_fields:
+        flash(f"Online details added: {', '.join(applied_fields)}.", "success")
+    else:
+        flash("Online details were found, but your current values were already populated.", "info")
+
+    return redirect(url_for("main.edit_book", book_id=book.id))
 
 
 @main.route("/manage/categories", methods=["GET", "POST"])

@@ -4,12 +4,24 @@
 
 {% block content %}
 <section class="mb-8">
-    <p class="text-sm uppercase tracking-[0.35em] text-stone-500">Management</p>
-    <h1 class="mt-2 text-4xl font-semibold text-stone-900">{{ page_title }}</h1>
-    <p class="mt-3 max-w-3xl text-stone-600">Use this form to fill in missing metadata, organise files, and mark whether a book still needs review.</p>
+    <p class="text-sm uppercase tracking-[0.35em] text-sky-700">Management</p>
+    <h1 class="mt-2 text-4xl font-semibold text-slate-950">{{ page_title }}</h1>
+    <p class="mt-3 max-w-3xl text-slate-600">Use this form to fill in missing metadata, organise files, and mark whether a book still needs review.</p>
 </section>
 
-<section class="rounded-[2rem] border border-stone-300 bg-white/90 p-6 shadow-lg shadow-stone-800/5">
+<section class="rounded-[2rem] border border-sky-200 bg-white/90 p-6 shadow-lg shadow-sky-200/40">
+    {% if book %}
+        <div class="mb-6 flex flex-wrap items-center justify-between gap-3 rounded-2xl border border-sky-200 bg-sky-50/80 px-4 py-4">
+            <div>
+                <p class="text-sm font-semibold text-sky-900">Online Enrichment</p>
+                <p class="mt-1 text-sm text-slate-600">Use the current ISBN to fetch missing details and a cover without overwriting fields you have already filled in.</p>
+            </div>
+            <form method="post" action="{{ url_for('main.fetch_book_details', book_id=book.id) }}">
+                <button type="submit" class="rounded-full bg-sky-600 px-5 py-3 text-sm font-semibold text-white transition hover:bg-sky-500">Get Details Online</button>
+            </form>
+        </div>
+    {% endif %}
+
     <form method="post" action="{{ form_action }}" enctype="multipart/form-data" class="grid gap-5 lg:grid-cols-2">
         <label class="block">
             <span class="mb-2 block text-sm font-medium text-stone-700">Title</span>
