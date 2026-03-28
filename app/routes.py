@@ -24,6 +24,7 @@ main = Blueprint("main", __name__)
 def index():
     query_text = request.args.get("q", "").strip()
     category_id = request.args.get("category", type=int)
+    author_name = request.args.get("author", "").strip()
 
     books_query = Book.query
 
@@ -40,6 +41,9 @@ def index():
             category_ids = gather_category_ids(selected_category)
             books_query = books_query.filter(Book.category_id.in_(category_ids))
 
+    if author_name:
+        books_query = books_query.filter(Book.author == author_name)
+
     books = books_query.order_by(Book.title.asc()).all()
     categories = Category.query.order_by(Category.name.asc()).all()
     pending_imports = count_pending_imports()
@@ -53,6 +57,7 @@ def index():
         review_count=review_count,
         query_text=query_text,
         selected_category=selected_category,
+        author_name=author_name,
     )
 
 
@@ -152,15 +157,27 @@ def manage_categories():
         return redirect(url_for("main.manage_categories"))
 
     categories = Category.query.order_by(Category.name.asc()).all()
-    return render_template("manage_categories.html", categories=categories)
+    category_rows = [
+        {
+            "category": category,
+            "tree_book_count": count_books_in_category_tree(category),
+            "has_children": bool(category.children),
+        }
+        for category in categories
+    ]
+    return render_template("manage_categories.html", categories=categories, category_rows=category_rows)
 
 
 @main.route("/manage/categories/<int:category_id>/delete", methods=["POST"])
 def delete_category(category_id):
     category = Category.query.get_or_404(category_id)
+    descendant_book_count = count_books_in_category_tree(category)
 
-    if category.books:
-        flash("Category cannot be deleted while books still use it.", "error")
+    if descendant_book_count:
+        flash(
+            f"Category cannot be deleted because {descendant_book_count} book(s) belong to this category tree.",
+            "error",
+        )
         return redirect(url_for("main.manage_categories"))
 
     if category.children:
@@ -218,6 +235,11 @@ def gather_category_ids(category):
     for child in category.children:
         ids.extend(gather_category_ids(child))
     return ids
+
+
+def count_books_in_category_tree(category):
+    category_ids = gather_category_ids(category)
+    return Book.query.filter(Book.category_id.in_(category_ids)).count()
 
 
 def count_pending_imports():

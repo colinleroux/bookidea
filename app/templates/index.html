@@ -52,6 +52,17 @@
             <a href="{{ url_for('main.index') }}" class="rounded-full border border-stone-300 px-5 py-3 text-sm font-semibold text-stone-700 transition hover:bg-stone-100">Reset</a>
         </div>
     </form>
+
+    {% if selected_category or author_name %}
+        <div class="mt-4 flex flex-wrap gap-3 text-sm">
+            {% if selected_category %}
+                <span class="rounded-full bg-stone-100 px-4 py-2 text-stone-700">Category: {{ selected_category.full_name() }}</span>
+            {% endif %}
+            {% if author_name %}
+                <span class="rounded-full bg-stone-100 px-4 py-2 text-stone-700">Author: {{ author_name }}</span>
+            {% endif %}
+        </div>
+    {% endif %}
 </section>
 
 <section>
@@ -69,14 +80,14 @@
                             <div>
                                 <p class="text-xs uppercase tracking-[0.25em] text-stone-500">{{ book.primary_format }}</p>
                                 <h2 class="mt-2 text-lg font-semibold leading-snug text-stone-900">{{ book.title }}</h2>
-                                <p class="mt-1 text-sm text-stone-600">{{ book.author }}</p>
+                                <a href="{{ url_for('main.index', author=book.author) }}" class="mt-1 inline-block text-sm text-stone-600 transition hover:text-amber-700">{{ book.author }}</a>
                             </div>
                             <div class="flex flex-col items-end gap-2">
                                 {% if book.category %}
-                                    <span class="rounded-full bg-stone-100 px-3 py-1 text-xs font-medium text-stone-700">{{ book.category.name }}</span>
+                                    <a href="{{ url_for('main.index', category=book.category.id) }}" class="rounded-full bg-stone-100 px-3 py-1 text-xs font-medium text-stone-700 transition hover:bg-stone-200">{{ book.category.full_name() }}</a>
                                 {% endif %}
                                 {% if book.needs_review %}
-                                    <span class="rounded-full bg-amber-100 px-3 py-1 text-xs font-medium text-amber-800">Needs review</span>
+                                    <a href="{{ url_for('main.manage_books', review=1) }}" class="rounded-full bg-amber-100 px-3 py-1 text-xs font-medium text-amber-800 transition hover:bg-amber-200">Needs review</a>
                                 {% endif %}
                             </div>
                         </div>

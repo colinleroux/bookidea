@@ -33,17 +33,21 @@
         <p class="text-sm uppercase tracking-[0.35em] text-stone-500">Current Tree</p>
         <h2 class="mt-2 text-3xl font-semibold text-stone-900">Library Categories</h2>
 
-        {% if categories %}
+        {% if category_rows %}
             <div class="mt-6 space-y-3">
-                {% for category in categories %}
+                {% for row in category_rows %}
                     <div class="flex items-center justify-between rounded-2xl border border-stone-200 bg-stone-50 px-4 py-4">
                         <div>
-                            <p class="font-semibold text-stone-900">{{ category.full_name() }}</p>
-                            <p class="mt-1 text-sm text-stone-600">{{ category.books|length }} books, {{ category.children|length }} subcategories</p>
+                            <p class="font-semibold text-stone-900">{{ row.category.full_name() }}</p>
+                            <p class="mt-1 text-sm text-stone-600">{{ row.tree_book_count }} books in this category tree, {{ row.category.children|length }} subcategories</p>
                         </div>
-                        <form action="{{ url_for('main.delete_category', category_id=category.id) }}" method="post" onsubmit="return confirm('Delete this category?');">
-                            <button type="submit" class="text-sm font-semibold text-rose-700">Delete</button>
-                        </form>
+                        {% if row.tree_book_count == 0 and not row.has_children %}
+                            <form action="{{ url_for('main.delete_category', category_id=row.category.id) }}" method="post" onsubmit="return confirm('Delete this category?');">
+                                <button type="submit" class="text-sm font-semibold text-rose-700">Delete</button>
+                            </form>
+                        {% else %}
+                            <span class="text-sm font-semibold text-stone-500">In use - cannot delete</span>
+                        {% endif %}
                     </div>
                 {% endfor %}
             </div>
