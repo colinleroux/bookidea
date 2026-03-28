@@ -155,6 +155,17 @@ def next_available_path(directory, filename):
 
 
 def resolve_existing_book(metadata):
+    stem = slugify(metadata.get("source_stem", ""))
+    if stem:
+        for book in Book.query.all():
+            existing_stems = {
+                slugify(Path(filename).stem)
+                for filename in (book.pdf_filename, book.epub_filename, book.mobi_filename)
+                if filename
+            }
+            if stem in existing_stems:
+                return book
+
     title = (metadata.get("title") or "").strip()
     author = (metadata.get("author") or "").strip()
     if not title:
@@ -197,6 +208,7 @@ def import_new_books():
             continue
 
         metadata = extract_metadata(file_path)
+        metadata["source_stem"] = file_path.stem
         existing_book = resolve_existing_book(metadata)
         destination = next_available_path(library_dir, file_path.name)
         shutil.move(str(file_path), destination)
