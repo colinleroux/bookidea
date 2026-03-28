@@ -11,10 +11,11 @@ from flask import (
     url_for,
 )
 from sqlalchemy import or_
+from werkzeug.utils import secure_filename
 
 from app import db
 from app.models import Book, Category
-from app.services.importer import import_new_books, slugify
+from app.services.importer import cover_file_path, ensure_placeholder_cover, import_new_books, slugify
 
 main = Blueprint("main", __name__)
 
@@ -182,6 +183,17 @@ def download_book_file(filename):
     return send_from_directory(current_app.config["LIBRARY_DIR"], filename, as_attachment=True)
 
 
+@main.route("/books/<int:book_id>/cover")
+def book_cover(book_id):
+    book = Book.query.get_or_404(book_id)
+
+    if not book.cover_image or not cover_file_path(book.cover_image) or not cover_file_path(book.cover_image).exists():
+        book.cover_image = ensure_placeholder_cover(book)
+        db.session.commit()
+
+    return send_from_directory(current_app.config["COVERS_DIR"], Path(book.cover_image).name)
+
+
 @main.route("/covers/<path:filename>")
 def cover_image(filename):
     return send_from_directory(current_app.config["COVERS_DIR"], filename)
@@ -222,6 +234,11 @@ def populate_book_from_form(book, form):
     book.epub_filename = form.get("epub_filename", "").strip() or None
     book.mobi_filename = form.get("mobi_filename", "").strip() or None
     book.cover_image = normalize_cover_path(form.get("cover_image", "").strip()) or book.cover_image
+    uploaded_cover = request.files.get("cover_file")
+    if uploaded_cover and uploaded_cover.filename:
+        book.cover_image = save_uploaded_cover(book, uploaded_cover)
+    elif not book.cover_image:
+        book.cover_image = ensure_placeholder_cover(book)
     book.needs_review = form.get("needs_review") == "on"
 
 
@@ -249,3 +266,18 @@ def parse_float(value):
         return float(value)
     except ValueError:
         return None
+
+
+def save_uploaded_cover(book, uploaded_cover):
+    extension = Path(secure_filename(uploaded_cover.filename)).suffix.lower() or ".jpg"
+    filename = f"{slugify(f'{book.title}-{book.author}')}{extension}"
+    destination = Path(current_app.config["COVERS_DIR"]) / filename
+    counter = 1
+
+    while destination.exists():
+        filename = f"{slugify(f'{book.title}-{book.author}')}-{counter}{extension}"
+        destination = Path(current_app.config["COVERS_DIR"]) / filename
+        counter += 1
+
+    uploaded_cover.save(destination)
+    return f"covers/{filename}"

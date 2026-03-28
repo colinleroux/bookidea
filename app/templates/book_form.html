@@ -10,7 +10,7 @@
 </section>
 
 <section class="rounded-[2rem] border border-stone-300 bg-white/90 p-6 shadow-lg shadow-stone-800/5">
-    <form method="post" action="{{ form_action }}" class="grid gap-5 lg:grid-cols-2">
+    <form method="post" action="{{ form_action }}" enctype="multipart/form-data" class="grid gap-5 lg:grid-cols-2">
         <label class="block">
             <span class="mb-2 block text-sm font-medium text-stone-700">Title</span>
             <input type="text" name="title" value="{{ book.title if book else '' }}" required class="w-full rounded-2xl border border-stone-300 bg-stone-50 px-4 py-3">
@@ -89,6 +89,11 @@
         <label class="block">
             <span class="mb-2 block text-sm font-medium text-stone-700">Cover Image</span>
             <input type="text" name="cover_image" value="{{ book.cover_image if book else '' }}" placeholder="covers/example.svg" class="w-full rounded-2xl border border-stone-300 bg-stone-50 px-4 py-3">
+        </label>
+
+        <label class="block">
+            <span class="mb-2 block text-sm font-medium text-stone-700">Upload Cover</span>
+            <input type="file" name="cover_file" accept="image/png,image/jpeg,image/webp,image/gif,image/svg+xml" class="w-full rounded-2xl border border-stone-300 bg-stone-50 px-4 py-3">
         </label>
 
         <label class="flex items-center gap-3 lg:col-span-2">

@@ -6,7 +6,7 @@
 <section class="grid gap-8 lg:grid-cols-[360px_1fr]">
     <div class="overflow-hidden rounded-[2rem] border border-stone-300 bg-white shadow-lg shadow-stone-800/5">
         <div class="aspect-[4/5] bg-stone-200">
-            <img src="{{ url_for('main.cover_image', filename=book.cover_image.split('/')[-1]) if book.cover_image else '' }}" alt="Cover for {{ book.title }}" class="h-full w-full object-cover">
+            <img src="{{ url_for('main.book_cover', book_id=book.id) }}" alt="Cover for {{ book.title }}" class="h-full w-full object-cover">
         </div>
     </div>
 

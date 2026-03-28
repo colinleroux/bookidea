@@ -57,11 +57,11 @@
 <section>
     {% if books %}
         <div class="grid gap-6 md:grid-cols-2 xl:grid-cols-3">
-            {% for book in books %}
-                <article class="overflow-hidden rounded-[2rem] border border-stone-300 bg-white shadow-lg shadow-stone-800/5 transition hover:-translate-y-1 hover:shadow-xl" x-data="{ expanded: false }">
-                    <div class="aspect-[4/5] overflow-hidden bg-stone-200">
-                        <img src="{{ url_for('main.cover_image', filename=book.cover_image.split('/')[-1]) if book.cover_image else '' }}" alt="Cover for {{ book.title }}" class="h-full w-full object-cover">
-                    </div>
+                    {% for book in books %}
+                        <article class="overflow-hidden rounded-[2rem] border border-stone-300 bg-white shadow-lg shadow-stone-800/5 transition hover:-translate-y-1 hover:shadow-xl" x-data="{ expanded: false }">
+                            <div class="aspect-[4/5] overflow-hidden bg-stone-200">
+                        <img src="{{ url_for('main.book_cover', book_id=book.id) }}" alt="Cover for {{ book.title }}" class="h-full w-full object-cover">
+                            </div>
                     <div class="p-6">
                         <div class="flex items-start justify-between gap-4">
                             <div>

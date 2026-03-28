@@ -141,6 +141,13 @@ def ensure_placeholder_cover(book):
     return f"covers/{cover_path.name}"
 
 
+def cover_file_path(cover_value):
+    if not cover_value:
+        return None
+    filename = Path(cover_value).name
+    return Path(current_app.config["COVERS_DIR"]) / filename
+
+
 def escape_xml(value):
     return escape(value)
 
