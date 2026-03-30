@@ -3,18 +3,29 @@
 {% block title %}Library Atelier{% endblock %}
 
 {% block content %}
-<section class="mb-8 flex justify-end">
-    <div class="rounded-[2rem] border border-sky-200 bg-white/90 p-6 shadow-lg shadow-sky-200/50">
-        <p class="text-sm font-medium uppercase tracking-[0.3em] text-sky-700">Import Queue</p>
-        <p class="mt-4 text-5xl font-semibold text-slate-950">{{ pending_imports }}</p>
-        <p class="mt-2 text-sm text-slate-600">Supported files waiting in `data/new_books`.</p>
-        <p class="mt-2 text-sm text-slate-600">{{ review_count }} books currently need a metadata review.</p>
-        <form action="{{ url_for('main.import_books') }}" method="post" class="mt-6">
-            <div class="flex flex-wrap gap-3">
-                <button type="submit" class="inline-flex items-center rounded-full bg-sky-600 px-5 py-3 text-sm font-semibold text-white transition hover:bg-sky-500">Import New Books</button>
-                <a href="{{ url_for('main.manage_books', review=1) }}" class="inline-flex items-center rounded-full border border-sky-200 px-5 py-3 text-sm font-semibold text-slate-700 transition hover:bg-sky-50">Review Imports</a>
-            </div>
-        </form>
+<section class="mb-6" x-data="{ showImportQueue: false }">
+    <div class="flex justify-end">
+        <button
+            type="button"
+            class="inline-flex items-center rounded-full border border-sky-200 bg-white/85 px-5 py-3 text-sm font-semibold text-slate-700 shadow-sm shadow-sky-100/60 transition hover:bg-sky-50"
+            @click="showImportQueue = !showImportQueue"
+            x-text="showImportQueue ? 'Hide Import Queue' : 'Show Import Queue'"
+        ></button>
+    </div>
+
+    <div x-show="showImportQueue" x-transition class="mt-4 flex justify-end">
+        <div class="w-full max-w-xl rounded-[2rem] border border-sky-200 bg-white/90 p-6 shadow-lg shadow-sky-200/50">
+            <p class="text-sm font-medium uppercase tracking-[0.3em] text-sky-700">Import Queue</p>
+            <p class="mt-4 text-5xl font-semibold text-slate-950">{{ pending_imports }}</p>
+            <p class="mt-2 text-sm text-slate-600">Supported files waiting in `data/new_books`.</p>
+            <p class="mt-2 text-sm text-slate-600">{{ review_count }} books currently need a metadata review.</p>
+            <form action="{{ url_for('main.import_books') }}" method="post" class="mt-6">
+                <div class="flex flex-wrap gap-3">
+                    <button type="submit" class="inline-flex items-center rounded-full bg-sky-600 px-5 py-3 text-sm font-semibold text-white transition hover:bg-sky-500">Import New Books</button>
+                    <a href="{{ url_for('main.manage_books', review=1) }}" class="inline-flex items-center rounded-full border border-sky-200 px-5 py-3 text-sm font-semibold text-slate-700 transition hover:bg-sky-50">Review Imports</a>
+                </div>
+            </form>
+        </div>
     </div>
 </section>
 
