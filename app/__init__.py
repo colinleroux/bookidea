@@ -36,6 +36,8 @@ def sync_sqlite_schema():
         "page_count": "ALTER TABLE book ADD COLUMN page_count INTEGER",
         "rating": "ALTER TABLE book ADD COLUMN rating FLOAT",
         "needs_review": "ALTER TABLE book ADD COLUMN needs_review BOOLEAN NOT NULL DEFAULT 1",
+        "is_favorite": "ALTER TABLE book ADD COLUMN is_favorite BOOLEAN NOT NULL DEFAULT 0",
+        "is_currently_reading": "ALTER TABLE book ADD COLUMN is_currently_reading BOOLEAN NOT NULL DEFAULT 0",
         "category_id": "ALTER TABLE book ADD COLUMN category_id INTEGER",
         "cover_image": "ALTER TABLE book ADD COLUMN cover_image VARCHAR(500)",
         "pdf_filename": "ALTER TABLE book ADD COLUMN pdf_filename VARCHAR(255)",

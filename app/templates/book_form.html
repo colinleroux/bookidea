@@ -79,6 +79,12 @@
         </label>
 
         <label class="block lg:col-span-2">
+            <span class="mb-2 block text-sm font-medium text-stone-700">Tags</span>
+            <input type="text" name="tags" value="{{ tags_text }}" placeholder="design, application dev, python, ai" class="w-full rounded-2xl border border-stone-300 bg-stone-50 px-4 py-3">
+            <span class="mt-2 block text-xs text-stone-500">Use comma-separated tags for cross-cutting topics that do not fit neatly into one category.</span>
+        </label>
+
+        <label class="block lg:col-span-2">
             <span class="mb-2 block text-sm font-medium text-stone-700">Description</span>
             <textarea name="description" rows="6" class="w-full rounded-2xl border border-stone-300 bg-stone-50 px-4 py-3">{{ book.description if book else '' }}</textarea>
         </label>
@@ -112,6 +118,17 @@
             <input type="checkbox" name="needs_review" {% if not book or book.needs_review %}checked{% endif %} class="h-4 w-4 rounded border-stone-300">
             <span class="text-sm font-medium text-stone-700">This book still needs manual review</span>
         </label>
+
+        <div class="grid gap-4 lg:col-span-2 md:grid-cols-2">
+            <label class="flex items-center gap-3 rounded-2xl border border-stone-200 bg-stone-50 px-4 py-4">
+                <input type="checkbox" name="is_favorite" {% if book and book.is_favorite %}checked{% endif %} class="h-4 w-4 rounded border-stone-300">
+                <span class="text-sm font-medium text-stone-700">Add to Favorites</span>
+            </label>
+            <label class="flex items-center gap-3 rounded-2xl border border-stone-200 bg-stone-50 px-4 py-4">
+                <input type="checkbox" name="is_currently_reading" {% if book and book.is_currently_reading %}checked{% endif %} class="h-4 w-4 rounded border-stone-300">
+                <span class="text-sm font-medium text-stone-700">Mark as Currently Reading</span>
+            </label>
+        </div>
 
         <div class="flex flex-wrap gap-3 lg:col-span-2">
             <button type="submit" class="rounded-full bg-stone-900 px-6 py-3 text-sm font-semibold text-white transition hover:bg-stone-700">Save Book</button>

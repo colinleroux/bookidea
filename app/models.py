@@ -1,6 +1,13 @@
 from app import db
 
 
+book_tags = db.Table(
+    "book_tags",
+    db.Column("book_id", db.Integer, db.ForeignKey("book.id"), primary_key=True),
+    db.Column("tag_id", db.Integer, db.ForeignKey("tag.id"), primary_key=True),
+)
+
+
 class Category(db.Model):
     id = db.Column(db.Integer, primary_key=True)
     name = db.Column(db.String(120), nullable=False)
@@ -26,6 +33,16 @@ class Category(db.Model):
         return f"<Category {self.full_name()}>"
 
 
+class Tag(db.Model):
+    id = db.Column(db.Integer, primary_key=True)
+    name = db.Column(db.String(80), nullable=False, unique=True)
+    slug = db.Column(db.String(90), nullable=False, unique=True)
+    created_at = db.Column(db.DateTime, server_default=db.func.now(), nullable=False)
+
+    def __repr__(self):
+        return f"<Tag {self.name}>"
+
+
 class Book(db.Model):
     id = db.Column(db.Integer, primary_key=True)
     title = db.Column(db.String(255), nullable=False)
@@ -39,9 +56,13 @@ class Book(db.Model):
     page_count = db.Column(db.Integer)
     rating = db.Column(db.Float)
     needs_review = db.Column(db.Boolean, nullable=False, default=True)
+    is_favorite = db.Column(db.Boolean, nullable=False, default=False)
+    is_currently_reading = db.Column(db.Boolean, nullable=False, default=False)
 
     category_id = db.Column(db.Integer, db.ForeignKey("category.id"), nullable=True)
     category = db.relationship("Category", backref=db.backref("books", lazy="select"))
+
+    tags = db.relationship("Tag", secondary=book_tags, lazy="select", backref=db.backref("books", lazy="select"))
 
     cover_image = db.Column(db.String(500))
     pdf_filename = db.Column(db.String(255))
@@ -65,6 +86,10 @@ class Book(db.Model):
         if self.mobi_filename:
             return "MOBI"
         return "Unknown"
+
+    @property
+    def tag_names(self):
+        return ", ".join(tag.name for tag in sorted(self.tags, key=lambda item: item.name.lower()))
 
     def available_formats(self):
         formats = []

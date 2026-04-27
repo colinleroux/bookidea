@@ -3,6 +3,12 @@
 {% block title %}Library Atelier{% endblock %}
 
 {% block content %}
+<section class="mb-6">
+    <p class="text-sm uppercase tracking-[0.35em] text-sky-700">Collections</p>
+    <h1 class="mt-2 text-4xl font-semibold text-slate-950">{{ page_heading }}</h1>
+    <p class="mt-3 max-w-3xl text-slate-600">Browse the full library, follow what you are reading right now, or keep a shortlist of personal favorites.</p>
+</section>
+
 <section class="mb-6" x-data="{ showImportQueue: false }">
     <div class="flex justify-end">
         <button
@@ -54,17 +60,25 @@
 
         <div class="flex items-end gap-3">
             <button type="submit" class="rounded-full bg-emerald-500 px-5 py-3 text-sm font-semibold text-white transition hover:bg-emerald-400">Apply</button>
-            <a href="{{ url_for('main.index') }}" class="rounded-full border border-sky-200 px-5 py-3 text-sm font-semibold text-slate-700 transition hover:bg-sky-50">Reset</a>
+            <a href="{{ url_for(page_endpoint) }}" class="rounded-full border border-sky-200 px-5 py-3 text-sm font-semibold text-slate-700 transition hover:bg-sky-50">Reset</a>
         </div>
     </form>
 
-    {% if selected_category or author_name %}
+    {% if selected_category or author_name or selected_tag or current_collection != "library" %}
         <div class="mt-4 flex flex-wrap gap-3 text-sm">
-            {% if selected_category %}
-                <span class="rounded-full bg-sky-100 px-4 py-2 text-sky-900">Category: {{ selected_category.full_name() }}</span>
+            {% if current_collection == "favorites" %}
+                <span class="rounded-full bg-rose-100 px-4 py-2 text-rose-900">Favorites</span>
+            {% elif current_collection == "currently-reading" %}
+                <span class="rounded-full bg-emerald-100 px-4 py-2 text-emerald-900">Currently Reading</span>
+            {% endif %}
+                                {% if selected_category %}
+                                    <span class="rounded-full bg-sky-100 px-4 py-2 text-sky-900">Category: {{ selected_category.full_name() }}</span>
             {% endif %}
             {% if author_name %}
                 <span class="rounded-full bg-fuchsia-100 px-4 py-2 text-fuchsia-900">Author: {{ author_name }}</span>
+            {% endif %}
+            {% if selected_tag %}
+                <span class="rounded-full bg-violet-100 px-4 py-2 text-violet-900">Tag: {{ selected_tag.name }}</span>
             {% endif %}
         </div>
     {% endif %}
@@ -85,14 +99,20 @@
                             <div>
                                 <p class="text-xs uppercase tracking-[0.25em] text-sky-700">{{ book.primary_format }}</p>
                                 <h2 class="mt-2 text-lg font-semibold leading-snug text-slate-950">{{ book.title }}</h2>
-                                <a href="{{ url_for('main.index', author=book.author) }}" class="mt-1 inline-block text-sm text-slate-600 transition hover:text-fuchsia-700">{{ book.author }}</a>
+                                <a href="{{ url_for(page_endpoint, author=book.author, category=selected_category.id if selected_category else None, tag=selected_tag.slug if selected_tag else None) }}" class="mt-1 inline-block text-sm text-slate-600 transition hover:text-fuchsia-700">{{ book.author }}</a>
                             </div>
                             <div class="flex flex-col items-end gap-2">
                                 {% if book.category %}
-                                    <a href="{{ url_for('main.index', category=book.category.id) }}" class="rounded-full bg-sky-100 px-3 py-1 text-xs font-medium text-sky-900 transition hover:bg-sky-200">{{ book.category.full_name() }}</a>
+                                    <a href="{{ url_for(page_endpoint, category=book.category.id, author=author_name or None, tag=selected_tag.slug if selected_tag else None) }}" class="rounded-full bg-sky-100 px-3 py-1 text-xs font-medium text-sky-900 transition hover:bg-sky-200">{{ book.category.full_name() }}</a>
                                 {% endif %}
                                 {% if book.needs_review %}
                                     <a href="{{ url_for('main.manage_books', review=1) }}" class="rounded-full bg-rose-100 px-3 py-1 text-xs font-medium text-rose-800 transition hover:bg-rose-200">Needs review</a>
+                                {% endif %}
+                                {% if book.is_favorite %}
+                                    <span class="rounded-full bg-amber-100 px-3 py-1 text-xs font-medium text-amber-800">Favorite</span>
+                                {% endif %}
+                                {% if book.is_currently_reading %}
+                                    <span class="rounded-full bg-emerald-100 px-3 py-1 text-xs font-medium text-emerald-800">Reading</span>
                                 {% endif %}
                             </div>
                         </div>
@@ -104,6 +124,9 @@
                         <div class="mt-4 flex flex-wrap gap-2 text-xs text-slate-600">
                             {% if book.isbn %}<span class="rounded-full bg-slate-100 px-3 py-1">ISBN {{ book.isbn }}</span>{% endif %}
                             {% if book.published_date %}<span class="rounded-full bg-slate-100 px-3 py-1">{{ book.published_date }}</span>{% endif %}
+                            {% for tag in book.tags %}
+                                <a href="{{ url_for(page_endpoint, tag=tag.slug, category=selected_category.id if selected_category else None, author=author_name or None) }}" class="rounded-full bg-violet-100 px-3 py-1 text-violet-900 transition hover:bg-violet-200">#{{ tag.name }}</a>
+                            {% endfor %}
                         </div>
 
                         <div class="mt-auto pt-5">
@@ -131,7 +154,7 @@
                 <div class="flex flex-wrap items-center gap-3">
                     {% if pagination.has_prev %}
                         <a
-                            href="{{ url_for('main.index', page=pagination.prev_num, q=query_text, category=selected_category.id if selected_category else None, author=author_name or None) }}"
+                            href="{{ url_for(page_endpoint, page=pagination.prev_num, q=query_text, category=selected_category.id if selected_category else None, author=author_name or None, tag=selected_tag.slug if selected_tag else None) }}"
                             class="rounded-full border border-sky-200 px-4 py-2 text-sm font-semibold text-slate-700 transition hover:bg-sky-50"
                         >
                             Previous
@@ -144,7 +167,7 @@
                                 <span class="rounded-full bg-sky-600 px-4 py-2 text-sm font-semibold text-white">{{ page_number }}</span>
                             {% else %}
                                 <a
-                                    href="{{ url_for('main.index', page=page_number, q=query_text, category=selected_category.id if selected_category else None, author=author_name or None) }}"
+                                    href="{{ url_for(page_endpoint, page=page_number, q=query_text, category=selected_category.id if selected_category else None, author=author_name or None, tag=selected_tag.slug if selected_tag else None) }}"
                                     class="rounded-full border border-sky-200 px-4 py-2 text-sm font-semibold text-slate-700 transition hover:bg-sky-50"
                                 >
                                     {{ page_number }}
@@ -157,7 +180,7 @@
 
                     {% if pagination.has_next %}
                         <a
-                            href="{{ url_for('main.index', page=pagination.next_num, q=query_text, category=selected_category.id if selected_category else None, author=author_name or None) }}"
+                            href="{{ url_for(page_endpoint, page=pagination.next_num, q=query_text, category=selected_category.id if selected_category else None, author=author_name or None, tag=selected_tag.slug if selected_tag else None) }}"
                             class="rounded-full border border-sky-200 px-4 py-2 text-sm font-semibold text-slate-700 transition hover:bg-sky-50"
                         >
                             Next

@@ -21,11 +21,14 @@
         <div class="mt-6 flex flex-wrap gap-3 text-sm">
             {% if book.category %}<span class="rounded-full bg-sky-100 px-4 py-2 text-sky-900">{{ book.category.full_name() }}</span>{% endif %}
             {% if book.needs_review %}<span class="rounded-full bg-rose-100 px-4 py-2 text-rose-800">Needs review</span>{% endif %}
+            {% if book.is_favorite %}<span class="rounded-full bg-amber-100 px-4 py-2 text-amber-800">Favorite</span>{% endif %}
+            {% if book.is_currently_reading %}<span class="rounded-full bg-emerald-100 px-4 py-2 text-emerald-800">Currently Reading</span>{% endif %}
             {% if book.isbn %}<span class="rounded-full bg-slate-100 px-4 py-2 text-slate-700">ISBN {{ book.isbn }}</span>{% endif %}
             {% if book.publisher %}<span class="rounded-full bg-slate-100 px-4 py-2 text-slate-700">{{ book.publisher }}</span>{% endif %}
             {% if book.published_date %}<span class="rounded-full bg-slate-100 px-4 py-2 text-slate-700">{{ book.published_date }}</span>{% endif %}
             {% if book.page_count %}<span class="rounded-full bg-slate-100 px-4 py-2 text-slate-700">{{ book.page_count }} pages</span>{% endif %}
             {% if book.language %}<span class="rounded-full bg-slate-100 px-4 py-2 text-slate-700">{{ book.language|upper }}</span>{% endif %}
+            {% for tag in book.tags %}<span class="rounded-full bg-violet-100 px-4 py-2 text-violet-900">#{{ tag.name }}</span>{% endfor %}
         </div>
 
         <div class="mt-8 border-t border-sky-100 pt-8">

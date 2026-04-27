@@ -14,7 +14,7 @@ from sqlalchemy import or_
 from werkzeug.utils import secure_filename
 
 from app import db
-from app.models import Book, Category
+from app.models import Book, Category, Tag
 from app.services.importer import cover_file_path, ensure_placeholder_cover, import_new_books, slugify
 from app.services.online_metadata import fetch_metadata_by_isbn, save_cover_from_url
 
@@ -23,12 +23,32 @@ main = Blueprint("main", __name__)
 
 @main.route("/")
 def index():
+    return render_library_page()
+
+
+@main.route("/favorites")
+def favorites():
+    return render_library_page(collection="favorites", heading="Favorites")
+
+
+@main.route("/currently-reading")
+def currently_reading():
+    return render_library_page(collection="currently-reading", heading="Currently Reading")
+
+
+def render_library_page(collection=None, heading="Library"):
     query_text = request.args.get("q", "").strip()
     category_id = request.args.get("category", type=int)
     author_name = request.args.get("author", "").strip()
+    tag_slug = request.args.get("tag", "").strip()
     page = request.args.get("page", default=1, type=int)
 
     books_query = Book.query
+
+    if collection == "favorites":
+        books_query = books_query.filter(Book.is_favorite.is_(True))
+    elif collection == "currently-reading":
+        books_query = books_query.filter(Book.is_currently_reading.is_(True))
 
     if query_text:
         search = f"%{query_text}%"
@@ -46,11 +66,21 @@ def index():
     if author_name:
         books_query = books_query.filter(Book.author == author_name)
 
+    selected_tag = None
+    if tag_slug:
+        selected_tag = Tag.query.filter_by(slug=tag_slug).first()
+        if selected_tag:
+            books_query = books_query.join(Book.tags).filter(Tag.id == selected_tag.id)
+
     pagination = books_query.order_by(Book.title.asc()).paginate(page=page, per_page=24, error_out=False)
     books = pagination.items
     categories = Category.query.order_by(Category.name.asc()).all()
     pending_imports = count_pending_imports()
     review_count = Book.query.filter_by(needs_review=True).count()
+    endpoint = {
+        "favorites": "main.favorites",
+        "currently-reading": "main.currently_reading",
+    }.get(collection, "main.index")
 
     return render_template(
         "index.html",
@@ -62,6 +92,10 @@ def index():
         query_text=query_text,
         selected_category=selected_category,
         author_name=author_name,
+        selected_tag=selected_tag,
+        current_collection=collection or "library",
+        page_heading=heading,
+        page_endpoint=endpoint,
     )
 
 
@@ -86,8 +120,8 @@ def manage_books():
 def new_book():
     if request.method == "POST":
         book = Book()
-        populate_book_from_form(book, request.form)
         db.session.add(book)
+        populate_book_from_form(book, request.form)
         db.session.commit()
         flash("Book created.", "success")
         return redirect(url_for("main.manage_books"))
@@ -98,6 +132,7 @@ def new_book():
         categories=Category.query.order_by(Category.name.asc()).all(),
         form_action=url_for("main.new_book"),
         page_title="Add Book",
+        tags_text="",
     )
 
 
@@ -117,6 +152,7 @@ def edit_book(book_id):
         categories=Category.query.order_by(Category.name.asc()).all(),
         form_action=url_for("main.edit_book", book_id=book.id),
         page_title=f"Edit {book.title}",
+        tags_text=book.tag_names,
     )
 
 
@@ -326,6 +362,9 @@ def populate_book_from_form(book, form):
     elif not book.cover_image:
         book.cover_image = ensure_placeholder_cover(book)
     book.needs_review = form.get("needs_review") == "on"
+    book.is_favorite = form.get("is_favorite") == "on"
+    book.is_currently_reading = form.get("is_currently_reading") == "on"
+    sync_book_tags(book, form.get("tags", ""))
 
 
 def normalize_cover_path(value):
@@ -352,6 +391,29 @@ def parse_float(value):
         return float(value)
     except ValueError:
         return None
+
+
+def sync_book_tags(book, raw_tags):
+    cleaned_names = []
+    for part in raw_tags.split(","):
+        name = part.strip()
+        if not name:
+            continue
+        if name.lower() not in {item.lower() for item in cleaned_names}:
+            cleaned_names.append(name)
+
+    tags = []
+    for name in cleaned_names:
+        slug = slugify(name)
+        tag = Tag.query.filter_by(slug=slug).first()
+        if not tag:
+            tag = Tag(name=name, slug=slug)
+            db.session.add(tag)
+        else:
+            tag.name = name
+        tags.append(tag)
+
+    book.tags = tags
 
 
 def delete_book_files(book):
