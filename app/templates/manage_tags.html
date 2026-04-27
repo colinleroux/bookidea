@@ -1,0 +1,60 @@
+{% extends "base.html" %}
+
+{% block title %}Tags{% endblock %}
+
+{% block content %}
+<section class="mb-8 grid gap-6 lg:grid-cols-[1fr_1.5fr]">
+    <div class="rounded-[2rem] border border-sky-200 bg-white/90 p-6 shadow-lg shadow-sky-200/40">
+        <p class="text-sm uppercase tracking-[0.35em] text-sky-700">Organisation</p>
+        <h1 class="mt-2 text-3xl font-semibold text-slate-950">Manage Tags</h1>
+        <p class="mt-3 text-slate-600">Create a controlled set of reusable tags so books can be filed under multiple themes without accidental duplicates.</p>
+
+        <form method="post" action="{{ url_for('main.manage_tags') }}" class="mt-6 space-y-4">
+            <label class="block">
+                <span class="mb-2 block text-sm font-medium text-slate-700">New tag name</span>
+                <input type="text" name="name" required class="w-full rounded-2xl border border-sky-200 bg-sky-50/50 px-4 py-3 text-slate-900">
+            </label>
+
+            <button type="submit" class="rounded-full bg-sky-600 px-5 py-3 text-sm font-semibold text-white transition hover:bg-sky-500">Create Tag</button>
+        </form>
+    </div>
+
+    <div class="rounded-[2rem] border border-sky-200 bg-white/90 p-6 shadow-lg shadow-sky-200/40">
+        <p class="text-sm uppercase tracking-[0.35em] text-sky-700">Current Tags</p>
+        <h2 class="mt-2 text-3xl font-semibold text-slate-950">Library Tags</h2>
+
+        {% if tags %}
+            <div class="mt-6 space-y-4">
+                {% for tag in tags %}
+                    <div class="rounded-2xl border border-sky-100 bg-sky-50/40 px-4 py-4">
+                        <div class="flex flex-wrap items-center justify-between gap-4">
+                            <div>
+                                <p class="font-semibold text-slate-950">{{ tag.name }}</p>
+                                <p class="mt-1 text-sm text-slate-600">{{ tag.books|length }} book(s) use this tag</p>
+                            </div>
+
+                            <div class="flex flex-wrap items-center gap-3">
+                                <form method="post" action="{{ url_for('main.manage_tags') }}" class="flex flex-wrap items-center gap-3">
+                                    <input type="hidden" name="tag_id" value="{{ tag.id }}">
+                                    <input type="text" name="name" value="{{ tag.name }}" class="rounded-full border border-sky-200 bg-white px-4 py-2 text-sm text-slate-900">
+                                    <button type="submit" class="rounded-full bg-emerald-500 px-4 py-2 text-sm font-semibold text-white transition hover:bg-emerald-400">Rename</button>
+                                </form>
+
+                                {% if tag.books|length == 0 %}
+                                    <form method="post" action="{{ url_for('main.delete_tag', tag_id=tag.id) }}" onsubmit="return confirm('Delete this tag?');">
+                                        <button type="submit" class="text-sm font-semibold text-rose-700">Delete</button>
+                                    </form>
+                                {% else %}
+                                    <span class="text-sm font-semibold text-slate-500">In use - cannot delete</span>
+                                {% endif %}
+                            </div>
+                        </div>
+                    </div>
+                {% endfor %}
+            </div>
+        {% else %}
+            <p class="mt-6 text-slate-600">No tags yet. Add your first few themes here, then assign them from the book edit screen.</p>
+        {% endif %}
+    </div>
+</section>
+{% endblock %}

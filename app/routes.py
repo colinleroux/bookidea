@@ -130,9 +130,9 @@ def new_book():
         "book_form.html",
         book=None,
         categories=Category.query.order_by(Category.name.asc()).all(),
+        tags=Tag.query.order_by(Tag.name.asc()).all(),
         form_action=url_for("main.new_book"),
         page_title="Add Book",
-        tags_text="",
     )
 
 
@@ -150,9 +150,9 @@ def edit_book(book_id):
         "book_form.html",
         book=book,
         categories=Category.query.order_by(Category.name.asc()).all(),
+        tags=Tag.query.order_by(Tag.name.asc()).all(),
         form_action=url_for("main.edit_book", book_id=book.id),
         page_title=f"Edit {book.title}",
-        tags_text=book.tag_names,
     )
 
 
@@ -267,6 +267,58 @@ def delete_category(category_id):
     return redirect(url_for("main.manage_categories"))
 
 
+@main.route("/manage/tags", methods=["GET", "POST"])
+def manage_tags():
+    if request.method == "POST":
+        name = request.form.get("name", "").strip()
+        tag_id = request.form.get("tag_id", type=int)
+
+        if not name:
+            flash("Tag name is required.", "error")
+            return redirect(url_for("main.manage_tags"))
+
+        slug = slugify(name)
+        existing = Tag.query.filter_by(slug=slug).first()
+
+        if tag_id:
+            tag = Tag.query.get_or_404(tag_id)
+            if existing and existing.id != tag.id:
+                flash("A tag with that name already exists.", "error")
+                return redirect(url_for("main.manage_tags"))
+            tag.name = name
+            tag.slug = slug
+            db.session.commit()
+            flash("Tag updated.", "success")
+            return redirect(url_for("main.manage_tags"))
+
+        if existing:
+            flash("That tag already exists.", "error")
+            return redirect(url_for("main.manage_tags"))
+
+        db.session.add(Tag(name=name, slug=slug))
+        db.session.commit()
+        flash("Tag created.", "success")
+        return redirect(url_for("main.manage_tags"))
+
+    tags = Tag.query.order_by(Tag.name.asc()).all()
+    return render_template("manage_tags.html", tags=tags)
+
+
+@main.route("/manage/tags/<int:tag_id>/delete", methods=["POST"])
+def delete_tag(tag_id):
+    tag = Tag.query.get_or_404(tag_id)
+    usage_count = len(tag.books)
+
+    if usage_count:
+        flash(f"Tag cannot be deleted because it is used by {usage_count} book(s).", "error")
+        return redirect(url_for("main.manage_tags"))
+
+    db.session.delete(tag)
+    db.session.commit()
+    flash("Tag deleted.", "success")
+    return redirect(url_for("main.manage_tags"))
+
+
 @main.route("/import", methods=["POST"])
 def import_books():
     batch_size = request.form.get("batch_size", default=25, type=int) or 25
@@ -364,7 +416,7 @@ def populate_book_from_form(book, form):
     book.needs_review = form.get("needs_review") == "on"
     book.is_favorite = form.get("is_favorite") == "on"
     book.is_currently_reading = form.get("is_currently_reading") == "on"
-    sync_book_tags(book, form.get("tags", ""))
+    sync_book_tags(book, request.form.getlist("tag_ids"))
 
 
 def normalize_cover_path(value):
@@ -393,27 +445,19 @@ def parse_float(value):
         return None
 
 
-def sync_book_tags(book, raw_tags):
-    cleaned_names = []
-    for part in raw_tags.split(","):
-        name = part.strip()
-        if not name:
+def sync_book_tags(book, raw_tag_ids):
+    tag_ids = []
+    for value in raw_tag_ids:
+        try:
+            tag_ids.append(int(value))
+        except (TypeError, ValueError):
             continue
-        if name.lower() not in {item.lower() for item in cleaned_names}:
-            cleaned_names.append(name)
 
-    tags = []
-    for name in cleaned_names:
-        slug = slugify(name)
-        tag = Tag.query.filter_by(slug=slug).first()
-        if not tag:
-            tag = Tag(name=name, slug=slug)
-            db.session.add(tag)
-        else:
-            tag.name = name
-        tags.append(tag)
+    if not tag_ids:
+        book.tags = []
+        return
 
-    book.tags = tags
+    book.tags = Tag.query.filter(Tag.id.in_(tag_ids)).order_by(Tag.name.asc()).all()
 
 
 def delete_book_files(book):
