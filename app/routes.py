@@ -15,6 +15,7 @@ from werkzeug.utils import secure_filename
 
 from app import db
 from app.models import AppSetting, Book, Category, Tag, WantedBook
+from app.services.conversion import can_convert_epub_to_pdf, convert_epub_to_pdf
 from app.services.importer import cover_file_path, ensure_placeholder_cover, import_new_books, slugify
 from app.services.online_metadata import fetch_metadata_by_isbn, save_cover_from_url
 
@@ -180,6 +181,9 @@ def render_library_page(collection=None, heading="Library"):
     author_name = request.args.get("author", "").strip()
     tag_slug = request.args.get("tag", "").strip()
     page = request.args.get("page", default=1, type=int)
+    view_mode = request.args.get("view", "compact").strip()
+    if view_mode not in {"compact", "details"}:
+        view_mode = "compact"
 
     books_query = Book.query
 
@@ -214,7 +218,8 @@ def render_library_page(collection=None, heading="Library"):
         if selected_tag:
             books_query = books_query.join(Book.tags).filter(Tag.id == selected_tag.id)
 
-    pagination = books_query.order_by(Book.title.asc()).paginate(page=page, per_page=24, error_out=False)
+    per_page = 48 if view_mode == "compact" else 24
+    pagination = books_query.order_by(Book.title.asc()).paginate(page=page, per_page=per_page, error_out=False)
     books = pagination.items
     categories = Category.query.order_by(Category.name.asc()).all()
     endpoint = {
@@ -235,6 +240,7 @@ def render_library_page(collection=None, heading="Library"):
         page_heading=heading,
         page_endpoint=endpoint,
         rating_stars=rating_stars,
+        view_mode=view_mode,
     )
 
 
@@ -333,7 +339,17 @@ def edit_book(book_id):
         page_title=f"Edit {book.title}",
         review_mode=review_mode,
         next_review_book=next_review_book,
+        can_convert_epub=can_convert_epub_to_pdf(book),
     )
+
+
+@main.route("/manage/books/<int:book_id>/convert-epub-to-pdf", methods=["POST"])
+def convert_book_epub_to_pdf(book_id):
+    book = Book.query.get_or_404(book_id)
+    redirect_args = {"review": 1} if request.args.get("review") == "1" else {}
+    success, message = convert_epub_to_pdf(book)
+    flash(message, "success" if success else "error")
+    return redirect(url_for("main.edit_book", book_id=book.id, **redirect_args))
 
 
 @main.route("/manage/books/<int:book_id>/delete", methods=["POST"])

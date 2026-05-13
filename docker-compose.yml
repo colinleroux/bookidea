@@ -13,6 +13,7 @@ services:
       NEW_BOOKS_DIR: /app/data/new_books
       COVERS_DIR: /app/data/covers
       CALIBRE_EBOOK_META: ${CALIBRE_EBOOK_META:-}
+      CALIBRE_EBOOK_CONVERT: ${CALIBRE_EBOOK_CONVERT:-}
     volumes:
       - .:/app
       - ./data:/app/data

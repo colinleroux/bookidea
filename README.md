@@ -184,6 +184,13 @@ $env:CALIBRE_EBOOK_META="/usr/bin/ebook-meta"
 docker compose up --build
 ```
 
+If you want to point EPUB-to-PDF conversion at a specific `ebook-convert` binary:
+
+```powershell
+$env:CALIBRE_EBOOK_CONVERT="/usr/bin/ebook-convert"
+docker compose up --build
+```
+
 ### Enrich existing books
 
 Once Calibre is available, you can enrich already-imported books with:

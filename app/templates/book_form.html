@@ -20,6 +20,18 @@
                 <button type="submit" class="rounded-full bg-sky-600 px-5 py-3 text-sm font-semibold text-white transition hover:bg-sky-500">Get Details Online</button>
             </form>
         </div>
+
+        {% if can_convert_epub %}
+            <div class="mb-6 flex flex-wrap items-center justify-between gap-3 rounded-2xl border border-emerald-200 bg-emerald-50/80 px-4 py-4">
+                <div>
+                    <p class="text-sm font-semibold text-emerald-900">Format Conversion</p>
+                    <p class="mt-1 text-sm text-slate-600">Create a PDF from the stored EPUB for this book.</p>
+                </div>
+                <form method="post" action="{{ url_for('main.convert_book_epub_to_pdf', book_id=book.id, review=1) if review_mode else url_for('main.convert_book_epub_to_pdf', book_id=book.id) }}" onsubmit="return confirm('Convert this EPUB to PDF?');">
+                    <button type="submit" class="rounded-full bg-emerald-600 px-5 py-3 text-sm font-semibold text-white transition hover:bg-emerald-500">Convert EPUB to PDF</button>
+                </form>
+            </div>
+        {% endif %}
     {% endif %}
 
     <form method="post" action="{{ form_action }}" enctype="multipart/form-data" class="grid gap-5 lg:grid-cols-2">
