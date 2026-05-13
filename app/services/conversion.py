@@ -1,3 +1,4 @@
+import os
 import shutil
 import subprocess
 from pathlib import Path
@@ -48,6 +49,7 @@ def convert_epub_to_pdf(book):
     library_dir = Path(current_app.config["LIBRARY_DIR"])
     base_filename = f"{slugify(f'{book.title}-{book.author}')}.pdf"
     pdf_path = next_available_path(library_dir, base_filename)
+    env = build_headless_calibre_env()
 
     try:
         result = subprocess.run(
@@ -55,6 +57,7 @@ def convert_epub_to_pdf(book):
             capture_output=True,
             text=True,
             check=False,
+            env=env,
             timeout=180,
         )
     except subprocess.TimeoutExpired:
@@ -83,3 +86,12 @@ def convert_epub_to_pdf(book):
     )
     db.session.commit()
     return True, f"Created PDF file {pdf_path.name}."
+
+
+def build_headless_calibre_env():
+    env = dict(os.environ)
+    env.setdefault("QT_QPA_PLATFORM", "offscreen")
+    env.setdefault("QTWEBENGINE_DISABLE_SANDBOX", "1")
+    env.setdefault("QTWEBENGINE_CHROMIUM_FLAGS", "--disable-gpu --disable-software-rasterizer --no-sandbox")
+    env.setdefault("LIBGL_ALWAYS_SOFTWARE", "1")
+    return env
