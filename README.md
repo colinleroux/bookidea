@@ -21,6 +21,7 @@ It is designed around a practical file-based workflow:
 - generated fallback covers when no real cover is available
 - manual cover upload from the edit screen
 - review workflow for incomplete imports
+- want list for books you plan to find or acquire
 - optional Calibre integration for richer metadata and cover extraction
 
 ## Project structure
@@ -139,6 +140,10 @@ The homepage cards include quick navigation:
 - clicking the category filters the library to that category/subcategory
 - clicking the author shows all books by that author
 - clicking `Needs review` opens the review list
+
+## Want list
+
+Use `Want List` to track books you have heard about but have not imported yet. Active wanted books are surfaced on the `Source` page when the current search or category filter matches them, making it easier to compare what you own against what you still want to find.
 
 ## Optional Calibre integration
 

@@ -1,0 +1,172 @@
+{% extends "base.html" %}
+
+{% block title %}Source{% endblock %}
+
+{% macro sort_link(label, key) -%}
+    {% set next_direction = "desc" if sort == key and direction == "asc" else "asc" %}
+    <a
+        href="{{ url_for('main.source', q=query_text, category=selected_category.id if selected_category else None, sort=key, direction=next_direction) }}"
+        class="inline-flex items-center gap-2 text-stone-700 transition hover:text-sky-700"
+    >
+        <span>{{ label }}</span>
+        {% if sort == key %}
+            <span class="text-xs text-sky-700">{{ "A-Z" if direction == "asc" else "Z-A" }}</span>
+        {% endif %}
+    </a>
+{%- endmacro %}
+
+{% block content %}
+<section class="mb-8 flex flex-wrap items-end justify-between gap-4">
+    <div>
+        <p class="text-sm uppercase tracking-[0.35em] text-sky-700">Source</p>
+        <h1 class="mt-2 text-4xl font-semibold text-slate-950">Imported Books Index</h1>
+        <p class="mt-3 max-w-2xl text-slate-600">Search and filter the imported collection as a compact list for checking what is already in the library.</p>
+    </div>
+</section>
+
+<section class="mb-6 rounded-[2rem] border border-sky-200 bg-white/90 p-5 shadow-lg shadow-sky-200/30">
+    <form method="get" action="{{ url_for('main.source') }}" class="grid gap-4 lg:grid-cols-[1.4fr_1fr_0.8fr_auto]">
+        <label class="block">
+            <span class="mb-2 block text-sm font-medium text-slate-700">Search by title or author</span>
+            <input type="text" name="q" value="{{ query_text }}" placeholder="Type an author or title" class="w-full rounded-2xl border border-sky-200 bg-sky-50/50 px-4 py-3 text-slate-900 outline-none transition focus:border-sky-500">
+        </label>
+
+        <label class="block">
+            <span class="mb-2 block text-sm font-medium text-slate-700">Filter by category</span>
+            <select name="category" class="w-full rounded-2xl border border-sky-200 bg-sky-50/50 px-4 py-3 text-slate-900 outline-none transition focus:border-sky-500">
+                <option value="">All categories</option>
+                {% for category in categories %}
+                    <option value="{{ category.id }}" {% if selected_category and selected_category.id == category.id %}selected{% endif %}>{{ category.full_name() }}</option>
+                {% endfor %}
+            </select>
+        </label>
+
+        <label class="block">
+            <span class="mb-2 block text-sm font-medium text-slate-700">Sort by</span>
+            <select name="sort" class="w-full rounded-2xl border border-sky-200 bg-sky-50/50 px-4 py-3 text-slate-900 outline-none transition focus:border-sky-500">
+                <option value="title" {% if sort == "title" %}selected{% endif %}>Title</option>
+                <option value="author" {% if sort == "author" %}selected{% endif %}>Author</option>
+                <option value="category" {% if sort == "category" %}selected{% endif %}>Category</option>
+            </select>
+        </label>
+
+        <input type="hidden" name="direction" value="{{ direction }}">
+
+        <div class="flex items-end gap-3">
+            <button type="submit" class="rounded-full bg-sky-600 px-5 py-3 text-sm font-semibold text-white transition hover:bg-sky-500">Apply</button>
+            <a href="{{ url_for('main.source') }}" class="rounded-full border border-sky-200 px-5 py-3 text-sm font-semibold text-slate-700 transition hover:bg-sky-50">Reset</a>
+        </div>
+    </form>
+
+    {% if selected_category or query_text %}
+        <div class="mt-4 flex flex-wrap gap-3 text-sm">
+            {% if query_text %}
+                <span class="rounded-full bg-slate-100 px-4 py-2 text-slate-700">Search: {{ query_text }}</span>
+            {% endif %}
+            {% if selected_category %}
+                <span class="rounded-full bg-sky-100 px-4 py-2 text-sky-900">Category: {{ selected_category.full_name() }}</span>
+            {% endif %}
+        </div>
+    {% endif %}
+</section>
+
+{% if wanted_matches %}
+    <section class="mb-6 rounded-[2rem] border border-amber-200 bg-amber-50/80 p-5 shadow-lg shadow-amber-100/50">
+        <div class="flex flex-wrap items-start justify-between gap-4">
+            <div>
+                <p class="text-sm uppercase tracking-[0.3em] text-amber-700">Want List</p>
+                <h2 class="mt-2 text-2xl font-semibold text-slate-950">Wanted Books Matching This View</h2>
+            </div>
+            <a href="{{ url_for('main.want_list', q=query_text, category=selected_category.id if selected_category else None) }}" class="rounded-full border border-amber-300 px-4 py-2 text-sm font-semibold text-amber-900 transition hover:bg-amber-100">Open Want List</a>
+        </div>
+        <div class="mt-4 grid gap-3 md:grid-cols-2 xl:grid-cols-3">
+            {% for wanted_book in wanted_matches %}
+                <div class="rounded-2xl border border-amber-200 bg-white/85 px-4 py-3">
+                    <div class="flex items-start justify-between gap-3">
+                        <div>
+                            <p class="font-semibold text-slate-950">{{ wanted_book.title }}</p>
+                            <p class="mt-1 text-sm text-slate-700">{{ wanted_book.author }}</p>
+                            {% if wanted_book.category %}<p class="mt-1 text-xs text-slate-500">{{ wanted_book.category.full_name() }}</p>{% endif %}
+                        </div>
+                        <span class="rounded-full bg-amber-100 px-3 py-1 text-xs font-medium text-amber-900">{{ wanted_book.status|replace("_", " ")|title }}</span>
+                    </div>
+                    {% if wanted_book.notes %}<p class="mt-2 text-sm text-slate-600">{{ wanted_book.notes }}</p>{% endif %}
+                    <div class="mt-3 flex flex-wrap gap-3 text-sm font-medium">
+                        <a href="{{ url_for('main.edit_wanted_book', wanted_book_id=wanted_book.id) }}" class="text-amber-800 transition hover:text-amber-600">Edit</a>
+                        <form action="{{ url_for('main.mark_wanted_book_acquired', wanted_book_id=wanted_book.id) }}" method="post">
+                            <button type="submit" class="text-emerald-700">Acquired</button>
+                        </form>
+                    </div>
+                </div>
+            {% endfor %}
+        </div>
+    </section>
+{% endif %}
+
+<section class="rounded-[2rem] border border-sky-200 bg-white/95 p-5 shadow-lg shadow-sky-200/30">
+    {% if books %}
+        <div class="mb-4 flex flex-wrap items-center justify-between gap-3 px-2 text-sm text-slate-600">
+            <p>Showing {{ books|length }} of {{ pagination.total }} matched books.</p>
+            <p>Sorted by {{ sort }} {{ "ascending" if direction == "asc" else "descending" }}.</p>
+        </div>
+
+        <div class="overflow-x-auto">
+            <table class="min-w-full divide-y divide-sky-100 text-left">
+                <thead>
+                    <tr class="text-sm uppercase tracking-[0.18em] text-slate-500">
+                        <th class="px-4 py-3">{{ sort_link("Title", "title") }}</th>
+                        <th class="px-4 py-3">{{ sort_link("Author", "author") }}</th>
+                        <th class="px-4 py-3">{{ sort_link("Category", "category") }}</th>
+                        <th class="px-4 py-3">Formats</th>
+                        <th class="px-4 py-3">Status</th>
+                        <th class="px-4 py-3">Actions</th>
+                    </tr>
+                </thead>
+                <tbody class="divide-y divide-sky-100">
+                    {% for book in books %}
+                        <tr class="align-top transition hover:bg-sky-50/60">
+                            <td class="px-4 py-4">
+                                <a href="{{ url_for('main.book_detail', book_id=book.id) }}" class="font-semibold text-slate-950 transition hover:text-sky-700">{{ book.title }}</a>
+                            </td>
+                            <td class="px-4 py-4 text-sm text-slate-700">
+                                <a href="{{ url_for('main.source', q=book.author, category=selected_category.id if selected_category else None, sort=sort, direction=direction) }}" class="transition hover:text-sky-700">{{ book.author }}</a>
+                            </td>
+                            <td class="px-4 py-4 text-sm text-slate-700">{{ book.category.full_name() if book.category else "Unsorted" }}</td>
+                            <td class="px-4 py-4 text-sm text-slate-700">{{ book.available_formats()|map(attribute=0)|join(", ") or "None" }}</td>
+                            <td class="px-4 py-4">
+                                {% if book.needs_review %}
+                                    <span class="rounded-full bg-amber-100 px-3 py-1 text-xs font-medium text-amber-800">Needs review</span>
+                                {% else %}
+                                    <span class="rounded-full bg-emerald-100 px-3 py-1 text-xs font-medium text-emerald-800">Ready</span>
+                                {% endif %}
+                            </td>
+                            <td class="px-4 py-4">
+                                <div class="flex flex-wrap gap-3 text-sm font-medium">
+                                    <a href="{{ url_for('main.book_detail', book_id=book.id) }}" class="text-slate-900 transition hover:text-sky-700">View</a>
+                                    <a href="{{ url_for('main.edit_book', book_id=book.id) }}" class="text-sky-700 transition hover:text-sky-500">Edit</a>
+                                </div>
+                            </td>
+                        </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+
+        {% if pagination.pages > 1 %}
+            <div class="mt-6 flex flex-wrap items-center justify-between gap-4 border-t border-sky-100 px-2 pt-5">
+                <p class="text-sm text-slate-600">Page {{ pagination.page }} of {{ pagination.pages }}</p>
+                <div class="flex flex-wrap gap-3">
+                    {% if pagination.has_prev %}
+                        <a href="{{ url_for('main.source', page=pagination.prev_num, q=query_text, category=selected_category.id if selected_category else None, sort=sort, direction=direction) }}" class="rounded-full border border-sky-200 px-4 py-2 text-sm font-semibold text-slate-700 transition hover:bg-sky-50">Previous</a>
+                    {% endif %}
+                    {% if pagination.has_next %}
+                        <a href="{{ url_for('main.source', page=pagination.next_num, q=query_text, category=selected_category.id if selected_category else None, sort=sort, direction=direction) }}" class="rounded-full border border-sky-200 px-4 py-2 text-sm font-semibold text-slate-700 transition hover:bg-sky-50">Next</a>
+                    {% endif %}
+                </div>
+            </div>
+        {% endif %}
+    {% else %}
+        <p class="px-4 py-8 text-center text-slate-600">No imported books match the current filters.</p>
+    {% endif %}
+</section>
+{% endblock %}

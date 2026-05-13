@@ -98,6 +98,28 @@ class ImportedFile(db.Model):
         return f"<ImportedFile {self.format} {self.stored_filename}>"
 
 
+class WantedBook(db.Model):
+    id = db.Column(db.Integer, primary_key=True)
+    title = db.Column(db.String(255), nullable=False)
+    author = db.Column(db.String(255), nullable=False, default="Unknown")
+    notes = db.Column(db.Text)
+    source = db.Column(db.String(255))
+    status = db.Column(db.String(32), nullable=False, default="wanted")
+    category_id = db.Column(db.Integer, db.ForeignKey("category.id"), nullable=True)
+    created_at = db.Column(db.DateTime, server_default=db.func.now(), nullable=False)
+    updated_at = db.Column(
+        db.DateTime,
+        server_default=db.func.now(),
+        onupdate=db.func.now(),
+        nullable=False,
+    )
+
+    category = db.relationship("Category", backref=db.backref("wanted_books", lazy="select"))
+
+    def __repr__(self):
+        return f"<WantedBook {self.title} by {self.author}>"
+
+
 class Book(db.Model):
     id = db.Column(db.Integer, primary_key=True)
     title = db.Column(db.String(255), nullable=False)

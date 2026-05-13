@@ -1,0 +1,52 @@
+{% extends "base.html" %}
+
+{% block title %}Edit Wanted Book{% endblock %}
+
+{% block content %}
+<section class="mb-8">
+    <p class="text-sm uppercase tracking-[0.35em] text-sky-700">Want List</p>
+    <h1 class="mt-2 text-4xl font-semibold text-slate-950">Edit Wanted Book</h1>
+</section>
+
+<section class="rounded-[2rem] border border-sky-200 bg-white/90 p-6 shadow-lg shadow-sky-200/30">
+    <form method="post" action="{{ url_for('main.edit_wanted_book', wanted_book_id=wanted_book.id) }}" class="grid gap-5 lg:grid-cols-2">
+        <label class="block">
+            <span class="mb-2 block text-sm font-medium text-slate-700">Title</span>
+            <input type="text" name="title" value="{{ wanted_book.title }}" required class="w-full rounded-2xl border border-sky-200 bg-sky-50/50 px-4 py-3 text-slate-900">
+        </label>
+        <label class="block">
+            <span class="mb-2 block text-sm font-medium text-slate-700">Author</span>
+            <input type="text" name="author" value="{{ wanted_book.author }}" class="w-full rounded-2xl border border-sky-200 bg-sky-50/50 px-4 py-3 text-slate-900">
+        </label>
+        <label class="block">
+            <span class="mb-2 block text-sm font-medium text-slate-700">Category</span>
+            <select name="category_id" class="w-full rounded-2xl border border-sky-200 bg-sky-50/50 px-4 py-3 text-slate-900">
+                <option value="">Unsorted</option>
+                {% for category in categories %}
+                    <option value="{{ category.id }}" {% if wanted_book.category_id == category.id %}selected{% endif %}>{{ category.full_name() }}</option>
+                {% endfor %}
+            </select>
+        </label>
+        <label class="block">
+            <span class="mb-2 block text-sm font-medium text-slate-700">Status</span>
+            <select name="status" class="w-full rounded-2xl border border-sky-200 bg-sky-50/50 px-4 py-3 text-slate-900">
+                {% for status in status_options %}
+                    <option value="{{ status }}" {% if wanted_book.status == status %}selected{% endif %}>{{ status|replace("_", " ")|title }}</option>
+                {% endfor %}
+            </select>
+        </label>
+        <label class="block lg:col-span-2">
+            <span class="mb-2 block text-sm font-medium text-slate-700">Source</span>
+            <input type="text" name="source" value="{{ wanted_book.source or '' }}" class="w-full rounded-2xl border border-sky-200 bg-sky-50/50 px-4 py-3 text-slate-900">
+        </label>
+        <label class="block lg:col-span-2">
+            <span class="mb-2 block text-sm font-medium text-slate-700">Notes</span>
+            <textarea name="notes" rows="5" class="w-full rounded-2xl border border-sky-200 bg-sky-50/50 px-4 py-3 text-slate-900">{{ wanted_book.notes or '' }}</textarea>
+        </label>
+        <div class="flex flex-wrap gap-3 lg:col-span-2">
+            <button type="submit" class="rounded-full bg-sky-600 px-6 py-3 text-sm font-semibold text-white transition hover:bg-sky-500">Save Wanted Book</button>
+            <a href="{{ url_for('main.want_list') }}" class="rounded-full border border-sky-200 px-6 py-3 text-sm font-semibold text-slate-700 transition hover:bg-sky-50">Cancel</a>
+        </div>
+    </form>
+</section>
+{% endblock %}

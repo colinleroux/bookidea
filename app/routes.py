@@ -14,13 +14,14 @@ from sqlalchemy import or_
 from werkzeug.utils import secure_filename
 
 from app import db
-from app.models import AppSetting, Book, Category, Tag
+from app.models import AppSetting, Book, Category, Tag, WantedBook
 from app.services.importer import cover_file_path, ensure_placeholder_cover, import_new_books, slugify
 from app.services.online_metadata import fetch_metadata_by_isbn, save_cover_from_url
 
 main = Blueprint("main", __name__)
 
 CATEGORY_EXCLUSIONS_SETTING = "homepage_excluded_category_ids"
+WANTED_BOOK_STATUSES = {"wanted", "ordered", "acquired", "ignored"}
 
 
 @main.route("/")
@@ -36,6 +37,141 @@ def favorites():
 @main.route("/currently-reading")
 def currently_reading():
     return render_library_page(collection="currently-reading", heading="Currently Reading")
+
+
+@main.route("/source")
+def source():
+    query_text = request.args.get("q", "").strip()
+    category_id = request.args.get("category", type=int)
+    sort = request.args.get("sort", "title").strip()
+    direction = request.args.get("direction", "asc").strip()
+    page = request.args.get("page", default=1, type=int)
+
+    books_query = Book.query
+
+    if query_text:
+        search = f"%{query_text}%"
+        books_query = books_query.filter(or_(Book.title.ilike(search), Book.author.ilike(search)))
+
+    selected_category = None
+    if category_id:
+        selected_category = Category.query.get(category_id)
+        if selected_category:
+            category_ids = gather_category_ids(selected_category)
+            books_query = books_query.filter(Book.category_id.in_(category_ids))
+
+    sort_columns = {
+        "title": Book.title,
+        "author": Book.author,
+        "category": Category.name,
+    }
+    sort = sort if sort in sort_columns else "title"
+    direction = direction if direction in {"asc", "desc"} else "asc"
+    sort_column = sort_columns[sort]
+
+    if sort == "category":
+        books_query = books_query.outerjoin(Book.category)
+
+    ordered_column = sort_column.desc() if direction == "desc" else sort_column.asc()
+    pagination = books_query.order_by(ordered_column, Book.title.asc()).paginate(page=page, per_page=100, error_out=False)
+    wanted_matches = matching_wanted_books(query_text, selected_category)
+
+    return render_template(
+        "source.html",
+        books=pagination.items,
+        pagination=pagination,
+        categories=Category.query.order_by(Category.name.asc()).all(),
+        query_text=query_text,
+        selected_category=selected_category,
+        sort=sort,
+        direction=direction,
+        wanted_matches=wanted_matches,
+    )
+
+
+@main.route("/want-list", methods=["GET", "POST"])
+def want_list():
+    if request.method == "POST":
+        wanted_book = WantedBook()
+        populate_wanted_book_from_form(wanted_book, request.form)
+        db.session.add(wanted_book)
+        db.session.commit()
+        flash("Wanted book added.", "success")
+        return redirect(url_for("main.want_list"))
+
+    query_text = request.args.get("q", "").strip()
+    category_id = request.args.get("category", type=int)
+    status_filter = request.args.get("status", "active").strip()
+    sort = request.args.get("sort", "author").strip()
+    direction = request.args.get("direction", "asc").strip()
+    page = request.args.get("page", default=1, type=int)
+
+    wanted_query = filtered_wanted_books_query(query_text, category_id, status_filter)
+    sort_columns = {
+        "title": WantedBook.title,
+        "author": WantedBook.author,
+        "status": WantedBook.status,
+        "created": WantedBook.created_at,
+    }
+    sort = sort if sort in sort_columns else "author"
+    direction = direction if direction in {"asc", "desc"} else "asc"
+    sort_column = sort_columns[sort]
+    ordered_column = sort_column.desc() if direction == "desc" else sort_column.asc()
+    pagination = wanted_query.order_by(ordered_column, WantedBook.title.asc()).paginate(
+        page=page,
+        per_page=100,
+        error_out=False,
+    )
+
+    selected_category = Category.query.get(category_id) if category_id else None
+    return render_template(
+        "want_list.html",
+        wanted_books=pagination.items,
+        pagination=pagination,
+        categories=Category.query.order_by(Category.name.asc()).all(),
+        query_text=query_text,
+        selected_category=selected_category,
+        status_filter=status_filter,
+        sort=sort,
+        direction=direction,
+        status_options=sorted(WANTED_BOOK_STATUSES),
+    )
+
+
+@main.route("/want-list/<int:wanted_book_id>/edit", methods=["GET", "POST"])
+def edit_wanted_book(wanted_book_id):
+    wanted_book = WantedBook.query.get_or_404(wanted_book_id)
+
+    if request.method == "POST":
+        populate_wanted_book_from_form(wanted_book, request.form)
+        db.session.commit()
+        flash("Wanted book updated.", "success")
+        return redirect(url_for("main.want_list"))
+
+    return render_template(
+        "wanted_book_form.html",
+        wanted_book=wanted_book,
+        categories=Category.query.order_by(Category.name.asc()).all(),
+        status_options=sorted(WANTED_BOOK_STATUSES),
+    )
+
+
+@main.route("/want-list/<int:wanted_book_id>/delete", methods=["POST"])
+def delete_wanted_book(wanted_book_id):
+    wanted_book = WantedBook.query.get_or_404(wanted_book_id)
+    db.session.delete(wanted_book)
+    db.session.commit()
+    flash("Wanted book deleted.", "success")
+    return redirect(url_for("main.want_list"))
+
+
+@main.route("/want-list/<int:wanted_book_id>/acquired", methods=["POST"])
+def mark_wanted_book_acquired(wanted_book_id):
+    wanted_book = WantedBook.query.get_or_404(wanted_book_id)
+    wanted_book.status = "acquired"
+    db.session.commit()
+    flash("Wanted book marked as acquired.", "success")
+    return redirect(request.referrer or url_for("main.want_list"))
 
 
 def render_library_page(collection=None, heading="Library"):
@@ -81,8 +217,6 @@ def render_library_page(collection=None, heading="Library"):
     pagination = books_query.order_by(Book.title.asc()).paginate(page=page, per_page=24, error_out=False)
     books = pagination.items
     categories = Category.query.order_by(Category.name.asc()).all()
-    pending_imports = count_pending_imports()
-    review_count = Book.query.filter_by(needs_review=True).count()
     endpoint = {
         "favorites": "main.favorites",
         "currently-reading": "main.currently_reading",
@@ -93,8 +227,6 @@ def render_library_page(collection=None, heading="Library"):
         books=books,
         pagination=pagination,
         categories=categories,
-        pending_imports=pending_imports,
-        review_count=review_count,
         query_text=query_text,
         selected_category=selected_category,
         author_name=author_name,
@@ -145,6 +277,8 @@ def manage_books():
         review_only=review_only,
         status_filter=status_filter,
         query_text=query_text,
+        pending_imports=count_pending_imports(),
+        review_count=Book.query.filter_by(needs_review=True).count(),
     )
 
 
@@ -463,6 +597,42 @@ def count_books_in_category_tree(category):
     return Book.query.filter(Book.category_id.in_(category_ids)).count()
 
 
+def filtered_wanted_books_query(query_text="", category_id=None, status_filter="active"):
+    wanted_query = WantedBook.query
+
+    if query_text:
+        search = f"%{query_text}%"
+        wanted_query = wanted_query.filter(or_(WantedBook.title.ilike(search), WantedBook.author.ilike(search)))
+
+    if category_id:
+        selected_category = Category.query.get(category_id)
+        if selected_category:
+            wanted_query = wanted_query.filter(WantedBook.category_id.in_(gather_category_ids(selected_category)))
+
+    if status_filter == "active":
+        wanted_query = wanted_query.filter(WantedBook.status.in_(["wanted", "ordered"]))
+    elif status_filter in WANTED_BOOK_STATUSES:
+        wanted_query = wanted_query.filter(WantedBook.status == status_filter)
+
+    return wanted_query
+
+
+def matching_wanted_books(query_text, selected_category):
+    if not query_text and not selected_category:
+        return []
+
+    wanted_query = WantedBook.query.filter(WantedBook.status.in_(["wanted", "ordered"]))
+
+    if query_text:
+        search = f"%{query_text}%"
+        wanted_query = wanted_query.filter(or_(WantedBook.title.ilike(search), WantedBook.author.ilike(search)))
+
+    if selected_category:
+        wanted_query = wanted_query.filter(WantedBook.category_id.in_(gather_category_ids(selected_category)))
+
+    return wanted_query.order_by(WantedBook.author.asc(), WantedBook.title.asc()).limit(25).all()
+
+
 def count_pending_imports():
     new_books_dir = Path(current_app.config["NEW_BOOKS_DIR"])
     if not new_books_dir.exists():
@@ -546,6 +716,16 @@ def populate_book_from_form(book, form):
     book.is_favorite = form.get("is_favorite") == "on"
     book.is_currently_reading = form.get("is_currently_reading") == "on"
     sync_book_tags(book, request.form.getlist("tag_ids"))
+
+
+def populate_wanted_book_from_form(wanted_book, form):
+    wanted_book.title = form.get("title", "").strip() or "Untitled"
+    wanted_book.author = form.get("author", "").strip() or "Unknown"
+    wanted_book.category_id = form.get("category_id", type=int) or None
+    wanted_book.notes = form.get("notes", "").strip() or None
+    wanted_book.source = form.get("source", "").strip() or None
+    status = form.get("status", "wanted").strip()
+    wanted_book.status = status if status in WANTED_BOOK_STATUSES else "wanted"
 
 
 def normalize_cover_path(value):
