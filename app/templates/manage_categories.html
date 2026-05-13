@@ -56,4 +56,42 @@
         {% endif %}
     </div>
 </section>
+
+<section class="rounded-[2rem] border border-sky-200 bg-white/90 p-6 shadow-lg shadow-sky-200/30">
+    <div class="flex flex-wrap items-start justify-between gap-4">
+        <div>
+            <p class="text-sm uppercase tracking-[0.35em] text-sky-700">Homepage</p>
+            <h2 class="mt-2 text-3xl font-semibold text-slate-950">Excluded Categories</h2>
+            <p class="mt-3 max-w-3xl text-slate-600">Selected category trees are hidden from the homepage when the category filter is set to All categories. Direct category filters still show them.</p>
+        </div>
+        {% if excluded_category_ids %}
+            <span class="rounded-full bg-sky-100 px-4 py-2 text-sm font-semibold text-sky-900">{{ excluded_category_ids|length }} excluded</span>
+        {% endif %}
+    </div>
+
+    {% if categories %}
+        <form method="post" action="{{ url_for('main.update_homepage_category_exclusions') }}" class="mt-6">
+            <div class="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
+                {% for row in category_rows %}
+                    <label class="flex items-start gap-3 rounded-2xl border border-sky-100 bg-sky-50/60 px-4 py-3 text-sm text-slate-700">
+                        <input
+                            type="checkbox"
+                            name="excluded_category_ids"
+                            value="{{ row.category.id }}"
+                            {% if row.is_homepage_excluded %}checked{% endif %}
+                            class="mt-1 h-4 w-4 rounded border-sky-300 text-sky-600"
+                        >
+                        <span>
+                            <span class="block font-semibold text-slate-900">{{ row.category.full_name() }}</span>
+                            <span class="mt-1 block text-xs text-slate-500">{{ row.tree_book_count }} books in this category tree</span>
+                        </span>
+                    </label>
+                {% endfor %}
+            </div>
+            <button type="submit" class="mt-5 rounded-full bg-sky-600 px-5 py-3 text-sm font-semibold text-white transition hover:bg-sky-500">Save Exclusions</button>
+        </form>
+    {% else %}
+        <p class="mt-6 text-slate-600">Add categories before setting homepage exclusions.</p>
+    {% endif %}
+</section>
 {% endblock %}

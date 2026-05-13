@@ -1,3 +1,5 @@
+import json
+
 from app import db
 
 
@@ -41,6 +43,41 @@ class Tag(db.Model):
 
     def __repr__(self):
         return f"<Tag {self.name}>"
+
+
+class AppSetting(db.Model):
+    key = db.Column(db.String(120), primary_key=True)
+    value = db.Column(db.Text, nullable=False, default="")
+    updated_at = db.Column(
+        db.DateTime,
+        server_default=db.func.now(),
+        onupdate=db.func.now(),
+        nullable=False,
+    )
+
+    def json_value(self, default=None):
+        if not self.value:
+            return default
+        try:
+            return json.loads(self.value)
+        except json.JSONDecodeError:
+            return default
+
+    @classmethod
+    def get_json(cls, key, default=None):
+        setting = cls.query.get(key)
+        if not setting:
+            return default
+        return setting.json_value(default)
+
+    @classmethod
+    def set_json(cls, key, value):
+        setting = cls.query.get(key)
+        serialized = json.dumps(value)
+        if setting:
+            setting.value = serialized
+        else:
+            db.session.add(cls(key=key, value=serialized))
 
 
 class Book(db.Model):

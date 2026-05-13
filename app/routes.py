@@ -14,11 +14,13 @@ from sqlalchemy import or_
 from werkzeug.utils import secure_filename
 
 from app import db
-from app.models import Book, Category, Tag
+from app.models import AppSetting, Book, Category, Tag
 from app.services.importer import cover_file_path, ensure_placeholder_cover, import_new_books, slugify
 from app.services.online_metadata import fetch_metadata_by_isbn, save_cover_from_url
 
 main = Blueprint("main", __name__)
+
+CATEGORY_EXCLUSIONS_SETTING = "homepage_excluded_category_ids"
 
 
 @main.route("/")
@@ -52,9 +54,7 @@ def render_library_page(collection=None, heading="Library"):
 
     if query_text:
         search = f"%{query_text}%"
-        books_query = books_query.filter(
-            or_(Book.title.ilike(search), Book.author.ilike(search), Book.isbn.ilike(search))
-        )
+        books_query = books_query.filter(or_(Book.title.ilike(search), Book.author.ilike(search)))
 
     selected_category = None
     if category_id:
@@ -62,6 +62,12 @@ def render_library_page(collection=None, heading="Library"):
         if selected_category:
             category_ids = gather_category_ids(selected_category)
             books_query = books_query.filter(Book.category_id.in_(category_ids))
+    elif collection is None:
+        excluded_category_ids = get_excluded_homepage_category_tree_ids()
+        if excluded_category_ids:
+            books_query = books_query.filter(
+                or_(Book.category_id.is_(None), Book.category_id.notin_(excluded_category_ids))
+            )
 
     if author_name:
         books_query = books_query.filter(Book.author == author_name)
@@ -96,6 +102,7 @@ def render_library_page(collection=None, heading="Library"):
         current_collection=collection or "library",
         page_heading=heading,
         page_endpoint=endpoint,
+        rating_stars=rating_stars,
     )
 
 
@@ -234,15 +241,41 @@ def manage_categories():
         return redirect(url_for("main.manage_categories"))
 
     categories = Category.query.order_by(Category.name.asc()).all()
+    excluded_category_ids = get_excluded_homepage_category_ids()
     category_rows = [
         {
             "category": category,
             "tree_book_count": count_books_in_category_tree(category),
             "has_children": bool(category.children),
+            "is_homepage_excluded": category.id in excluded_category_ids,
         }
         for category in categories
     ]
-    return render_template("manage_categories.html", categories=categories, category_rows=category_rows)
+    return render_template(
+        "manage_categories.html",
+        categories=categories,
+        category_rows=category_rows,
+        excluded_category_ids=excluded_category_ids,
+    )
+
+
+@main.route("/manage/categories/homepage-exclusions", methods=["POST"])
+def update_homepage_category_exclusions():
+    valid_category_ids = {category.id for category in Category.query.with_entities(Category.id).all()}
+    selected_ids = []
+
+    for raw_category_id in request.form.getlist("excluded_category_ids"):
+        try:
+            category_id = int(raw_category_id)
+        except (TypeError, ValueError):
+            continue
+        if category_id in valid_category_ids:
+            selected_ids.append(category_id)
+
+    AppSetting.set_json(CATEGORY_EXCLUSIONS_SETTING, sorted(set(selected_ids)))
+    db.session.commit()
+    flash("Homepage category exclusions updated.", "success")
+    return redirect(url_for("main.manage_categories"))
 
 
 @main.route("/manage/categories/<int:category_id>/delete", methods=["POST"])
@@ -390,6 +423,44 @@ def count_pending_imports():
         if file_path.is_file() and file_path.suffix.lower() in {".pdf", ".epub", ".mobi"}:
             count += 1
     return count
+
+
+def get_excluded_homepage_category_ids():
+    raw_ids = AppSetting.get_json(CATEGORY_EXCLUSIONS_SETTING, [])
+    if not isinstance(raw_ids, list):
+        return set()
+
+    excluded_ids = set()
+    for raw_id in raw_ids:
+        try:
+            excluded_ids.add(int(raw_id))
+        except (TypeError, ValueError):
+            continue
+    return excluded_ids
+
+
+def get_excluded_homepage_category_tree_ids():
+    excluded_ids = get_excluded_homepage_category_ids()
+    tree_ids = set()
+
+    for category_id in excluded_ids:
+        category = Category.query.get(category_id)
+        if category:
+            tree_ids.update(gather_category_ids(category))
+
+    return tree_ids
+
+
+def rating_stars(rating):
+    if rating is None:
+        return None
+
+    filled_count = max(0, min(5, int(float(rating) + 0.5)))
+    return {
+        "filled": filled_count,
+        "empty": 5 - filled_count,
+        "label": f"{float(rating):.1f} out of 5",
+    }
 
 
 def populate_book_from_form(book, form):

@@ -3,12 +3,6 @@
 {% block title %}Library Atelier{% endblock %}
 
 {% block content %}
-<section class="mb-6">
-    <p class="text-sm uppercase tracking-[0.35em] text-sky-700">Collections</p>
-    <h1 class="mt-2 text-4xl font-semibold text-slate-950">{{ page_heading }}</h1>
-    <p class="mt-3 max-w-3xl text-slate-600">Browse the full library, follow what you are reading right now, or keep a shortlist of personal favorites.</p>
-</section>
-
 <section class="mb-6" x-data="{ showImportQueue: false }">
     <div class="flex justify-end">
         <button
@@ -38,12 +32,12 @@
 <section class="mb-8 rounded-[2rem] border border-sky-200 bg-white/85 p-5 shadow-lg shadow-sky-200/40">
     <form method="get" class="grid gap-4 lg:grid-cols-[1.5fr_1fr_auto]">
         <label class="block">
-            <span class="mb-2 block text-sm font-medium text-slate-700">Search by title, author, or ISBN</span>
+            <span class="mb-2 block text-sm font-medium text-slate-700">Search by title or author</span>
             <input
                 type="text"
                 name="q"
                 value="{{ query_text }}"
-                placeholder="Try 'Python', 'Le Guin', or an ISBN"
+                placeholder="Try 'Python' or 'Le Guin'"
                 class="w-full rounded-2xl border border-sky-200 bg-sky-50/50 px-4 py-3 text-slate-900 outline-none ring-0 transition focus:border-sky-500"
             >
         </label>
@@ -100,6 +94,14 @@
                                 <p class="text-xs uppercase tracking-[0.25em] text-sky-700">{{ book.primary_format }}</p>
                                 <h2 class="mt-2 text-lg font-semibold leading-snug text-slate-950">{{ book.title }}</h2>
                                 <a href="{{ url_for(page_endpoint, author=book.author, category=selected_category.id if selected_category else None, tag=selected_tag.slug if selected_tag else None) }}" class="mt-1 inline-block text-sm text-slate-600 transition hover:text-fuchsia-700">{{ book.author }}</a>
+                                {% set stars = rating_stars(book.rating) %}
+                                {% if stars %}
+                                    <p class="mt-2 text-sm text-amber-500" title="{{ stars.label }}" aria-label="{{ stars.label }}">
+                                        {% for _ in range(stars.filled) %}<span>&#9733;</span>{% endfor %}{% for _ in range(stars.empty) %}<span class="text-slate-300">&#9734;</span>{% endfor %}
+                                    </p>
+                                {% else %}
+                                    <p class="mt-2 text-sm text-slate-400">Unrated</p>
+                                {% endif %}
                             </div>
                             <div class="flex flex-col items-end gap-2">
                                 {% if book.category %}
@@ -117,12 +119,7 @@
                             </div>
                         </div>
 
-                        {% if book.description %}
-                            <p class="mt-3 text-sm leading-6 text-slate-700">{{ book.description[:110] }}{% if book.description|length > 110 %}...{% endif %}</p>
-                        {% endif %}
-
                         <div class="mt-4 flex flex-wrap gap-2 text-xs text-slate-600">
-                            {% if book.isbn %}<span class="rounded-full bg-slate-100 px-3 py-1">ISBN {{ book.isbn }}</span>{% endif %}
                             {% if book.published_date %}<span class="rounded-full bg-slate-100 px-3 py-1">{{ book.published_date }}</span>{% endif %}
                             {% for tag in book.tags %}
                                 <a href="{{ url_for(page_endpoint, tag=tag.slug, category=selected_category.id if selected_category else None, author=author_name or None) }}" class="rounded-full bg-violet-100 px-3 py-1 text-violet-900 transition hover:bg-violet-200">#{{ tag.name }}</a>

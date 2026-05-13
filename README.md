@@ -44,6 +44,16 @@ The app is exposed at:
 
 - `http://localhost:8008`
 
+## Database migrations
+
+Before deploying a version that includes new migrations, run:
+
+```powershell
+python scripts\migrate_db.py
+```
+
+Current migrations are additive only and do not alter or delete existing book records.
+
 ## Book import workflow
 
 The current import flow is:
