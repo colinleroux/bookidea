@@ -12,7 +12,7 @@ migrate = Migrate()
 
 
 def ensure_storage(app):
-    for key in ("DATA_DIR", "LIBRARY_DIR", "NEW_BOOKS_DIR", "COVERS_DIR"):
+    for key in ("DATA_DIR", "LIBRARY_DIR", "NEW_BOOKS_DIR", "COVERS_DIR", "DUPLICATE_BOOKS_DIR"):
         Path(app.config[key]).mkdir(parents=True, exist_ok=True)
 
 

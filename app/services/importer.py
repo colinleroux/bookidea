@@ -1,3 +1,4 @@
+import hashlib
 import re
 import shutil as shutil_module
 import shutil
@@ -8,7 +9,7 @@ from xml.sax.saxutils import escape
 from flask import current_app
 
 from app import db
-from app.models import Book
+from app.models import Book, ImportedFile
 
 try:
     from PyPDF2 import PdfReader
@@ -22,6 +23,11 @@ except ImportError:  # pragma: no cover
 
 
 SUPPORTED_EXTENSIONS = {".pdf", ".epub", ".mobi"}
+FORMAT_LABELS = {
+    ".pdf": "PDF",
+    ".epub": "EPUB",
+    ".mobi": "MOBI",
+}
 
 
 def slugify(value):
@@ -285,6 +291,70 @@ def next_available_path(directory, filename):
     return candidate
 
 
+def file_sha256(file_path):
+    digest = hashlib.sha256()
+    with file_path.open("rb") as file_handle:
+        for chunk in iter(lambda: file_handle.read(1024 * 1024), b""):
+            digest.update(chunk)
+    return digest.hexdigest()
+
+
+def format_label(extension):
+    return FORMAT_LABELS.get(extension.lower(), extension.lower().lstrip(".").upper())
+
+
+def filename_for_format(book, extension):
+    if extension == ".pdf":
+        return book.pdf_filename
+    if extension == ".epub":
+        return book.epub_filename
+    if extension == ".mobi":
+        return book.mobi_filename
+    return None
+
+
+def stored_book_file_path(filename):
+    if not filename:
+        return None
+
+    library_dir = Path(current_app.config["LIBRARY_DIR"]).resolve()
+    file_path = (library_dir / filename).resolve()
+
+    try:
+        file_path.relative_to(library_dir)
+    except ValueError:
+        return None
+
+    if not file_path.is_file():
+        return None
+    return file_path
+
+
+def quarantine_import_file(file_path, reason):
+    duplicate_dir = Path(current_app.config["DUPLICATE_BOOKS_DIR"]) / reason
+    duplicate_dir.mkdir(parents=True, exist_ok=True)
+    destination = next_available_path(duplicate_dir, file_path.name)
+    shutil.move(str(file_path), destination)
+    return destination
+
+
+def record_imported_file(book, extension, stored_filename, original_filename, sha256, file_size):
+    existing_record = ImportedFile.query.filter_by(sha256=sha256).first()
+    if existing_record:
+        return existing_record
+
+    record = ImportedFile(
+        book=book,
+        format=format_label(extension),
+        stored_filename=stored_filename,
+        original_filename=original_filename,
+        sha256=sha256,
+        file_size=file_size,
+    )
+    db.session.add(record)
+    return record
+
+
 def resolve_existing_book(metadata):
     stem = slugify(metadata.get("source_stem", ""))
     if stem:
@@ -333,18 +403,56 @@ def import_new_books(limit=None):
 
     processed = []
     skipped = []
-    processed_count = 0
+    handled_count = 0
 
     for file_path in sorted(source_dir.iterdir()):
         if not file_path.is_file() or file_path.suffix.lower() not in SUPPORTED_EXTENSIONS:
             continue
 
-        if limit is not None and processed_count >= limit:
+        if limit is not None and handled_count >= limit:
             break
+
+        extension = file_path.suffix.lower()
+        original_filename = file_path.name
+        incoming_sha256 = file_sha256(file_path)
+        incoming_size = file_path.stat().st_size
+        existing_file = ImportedFile.query.filter_by(sha256=incoming_sha256).first()
+
+        if existing_file:
+            destination = quarantine_import_file(file_path, "exact_duplicates")
+            skipped.append(
+                {
+                    "filename": original_filename,
+                    "reason": "exact_duplicate",
+                    "destination": str(destination),
+                    "existing_book_id": existing_file.book_id,
+                }
+            )
+            handled_count += 1
+            continue
 
         metadata = extract_metadata(file_path)
         metadata["source_stem"] = file_path.stem
         existing_book = resolve_existing_book(metadata)
+
+        if existing_book:
+            existing_format_filename = filename_for_format(existing_book, extension)
+            existing_format_path = stored_book_file_path(existing_format_filename)
+            if existing_format_path:
+                existing_format_sha256 = file_sha256(existing_format_path)
+                reason = "exact_duplicates" if existing_format_sha256 == incoming_sha256 else "format_conflicts"
+                destination = quarantine_import_file(file_path, reason)
+                skipped.append(
+                    {
+                        "filename": original_filename,
+                        "reason": "exact_duplicate" if reason == "exact_duplicates" else "format_conflict",
+                        "destination": str(destination),
+                        "existing_book_id": existing_book.id,
+                    }
+                )
+                handled_count += 1
+                continue
+
         destination = next_available_path(library_dir, file_path.name)
         shutil.move(str(file_path), destination)
 
@@ -374,8 +482,17 @@ def import_new_books(limit=None):
         else:
             action = "updated"
 
+        db.session.flush()
+        record_imported_file(
+            book,
+            extension,
+            destination.name,
+            original_filename,
+            incoming_sha256,
+            incoming_size,
+        )
         processed.append({"title": book.title, "author": book.author, "action": action})
-        processed_count += 1
+        handled_count += 1
 
     db.session.commit()
     remaining = count_pending_import_files(source_dir)

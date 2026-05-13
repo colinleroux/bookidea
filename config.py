@@ -7,6 +7,7 @@ DATA_DIR = Path(os.getenv("DATA_DIR", BASE_DIR / "data"))
 LIBRARY_DIR = Path(os.getenv("LIBRARY_DIR", DATA_DIR / "books"))
 NEW_BOOKS_DIR = Path(os.getenv("NEW_BOOKS_DIR", DATA_DIR / "new_books"))
 COVERS_DIR = Path(os.getenv("COVERS_DIR", DATA_DIR / "covers"))
+DUPLICATE_BOOKS_DIR = Path(os.getenv("DUPLICATE_BOOKS_DIR", DATA_DIR / "duplicate_books"))
 DATABASE_PATH = Path(os.getenv("DATABASE_PATH", DATA_DIR / "library.db"))
 CALIBRE_EBOOK_META = os.getenv("CALIBRE_EBOOK_META", "").strip()
 
@@ -20,4 +21,5 @@ class Config:
     LIBRARY_DIR = LIBRARY_DIR
     NEW_BOOKS_DIR = NEW_BOOKS_DIR
     COVERS_DIR = COVERS_DIR
+    DUPLICATE_BOOKS_DIR = DUPLICATE_BOOKS_DIR
     CALIBRE_EBOOK_META = CALIBRE_EBOOK_META

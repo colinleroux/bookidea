@@ -115,12 +115,37 @@ def book_detail(book_id):
 @main.route("/manage/books")
 def manage_books():
     review_only = request.args.get("review") == "1"
-    books_query = Book.query
-    if review_only:
-        books_query = books_query.filter_by(needs_review=True)
+    status_filter = request.args.get("status", "").strip()
+    query_text = request.args.get("q", "").strip()
+    page = request.args.get("page", default=1, type=int)
 
-    books = books_query.order_by(Book.created_at.desc()).all()
-    return render_template("manage_books.html", books=books, review_only=review_only)
+    if review_only:
+        status_filter = "needs_review"
+
+    books_query = Book.query
+
+    if status_filter == "needs_review":
+        books_query = books_query.filter_by(needs_review=True)
+    elif status_filter == "ready":
+        books_query = books_query.filter_by(needs_review=False)
+
+    if query_text:
+        search = f"%{query_text}%"
+        books_query = books_query.filter(or_(Book.title.ilike(search), Book.author.ilike(search)))
+
+    pagination = (
+        books_query.order_by(Book.needs_review.desc(), Book.created_at.desc())
+        .paginate(page=page, per_page=50, error_out=False)
+    )
+
+    return render_template(
+        "manage_books.html",
+        books=pagination.items,
+        pagination=pagination,
+        review_only=review_only,
+        status_filter=status_filter,
+        query_text=query_text,
+    )
 
 
 @main.route("/manage/books/new", methods=["GET", "POST"])
@@ -146,11 +171,23 @@ def new_book():
 @main.route("/manage/books/<int:book_id>/edit", methods=["GET", "POST"])
 def edit_book(book_id):
     book = Book.query.get_or_404(book_id)
+    review_mode = request.args.get("review") == "1"
+    next_review_book = get_next_review_book(book.id)
 
     if request.method == "POST":
+        action = request.form.get("action", "save")
+        review_mode = request.form.get("review_mode") == "1"
         populate_book_from_form(book, request.form)
         db.session.commit()
         flash("Book updated.", "success")
+        if action == "save_next" and review_mode:
+            next_review_book = get_next_review_book(book.id)
+            if next_review_book:
+                return redirect(url_for("main.edit_book", book_id=next_review_book.id, review=1))
+            flash("No more books currently need review.", "info")
+            return redirect(url_for("main.manage_books", review=1))
+        if action == "save_return" and review_mode:
+            return redirect(url_for("main.manage_books", review=1))
         return redirect(url_for("main.book_detail", book_id=book.id))
 
     return render_template(
@@ -158,8 +195,10 @@ def edit_book(book_id):
         book=book,
         categories=Category.query.order_by(Category.name.asc()).all(),
         tags=Tag.query.order_by(Tag.name.asc()).all(),
-        form_action=url_for("main.edit_book", book_id=book.id),
+        form_action=url_for("main.edit_book", book_id=book.id, review=1) if review_mode else url_for("main.edit_book", book_id=book.id),
         page_title=f"Edit {book.title}",
+        review_mode=review_mode,
+        next_review_book=next_review_book,
     )
 
 
@@ -183,15 +222,16 @@ def delete_book(book_id):
 @main.route("/manage/books/<int:book_id>/fetch-details", methods=["POST"])
 def fetch_book_details(book_id):
     book = Book.query.get_or_404(book_id)
+    redirect_args = {"review": 1} if request.args.get("review") == "1" else {}
 
     if not book.isbn:
         flash("Add an ISBN before trying to fetch details online.", "error")
-        return redirect(url_for("main.edit_book", book_id=book.id))
+        return redirect(url_for("main.edit_book", book_id=book.id, **redirect_args))
 
     metadata = fetch_metadata_by_isbn(book.isbn)
     if not metadata:
         flash("No online details were found for that ISBN.", "error")
-        return redirect(url_for("main.edit_book", book_id=book.id))
+        return redirect(url_for("main.edit_book", book_id=book.id, **redirect_args))
 
     applied_fields = []
     for field in ("title", "subtitle", "author", "publisher", "published_date", "page_count", "description"):
@@ -214,7 +254,7 @@ def fetch_book_details(book_id):
     else:
         flash("Online details were found, but your current values were already populated.", "info")
 
-    return redirect(url_for("main.edit_book", book_id=book.id))
+    return redirect(url_for("main.edit_book", book_id=book.id, **redirect_args))
 
 
 @main.route("/manage/categories", methods=["GET", "POST"])
@@ -357,17 +397,27 @@ def import_books():
     batch_size = request.form.get("batch_size", default=25, type=int) or 25
     result = import_new_books(limit=batch_size)
     processed_count = len(result["processed"])
+    skipped_count = len(result["skipped"])
 
     if result["remaining"] > 0:
         return render_template(
             "import_progress.html",
             processed_count=processed_count,
+            skipped_count=skipped_count,
             remaining_count=result["remaining"],
             batch_size=batch_size,
         )
 
     if processed_count:
-        flash(f"Imported or updated {processed_count} book files. Import queue is now complete.", "success")
+        message = f"Imported or updated {processed_count} book files."
+        if skipped_count:
+            message += f" Quarantined {skipped_count} duplicate or conflicting file(s)."
+        flash(f"{message} Import queue is now complete.", "success")
+    elif skipped_count:
+        flash(
+            f"Quarantined {skipped_count} duplicate or conflicting file(s). Import queue is now complete.",
+            "info",
+        )
     else:
         flash("No new supported book files were found to import.", "info")
 
@@ -449,6 +499,14 @@ def get_excluded_homepage_category_tree_ids():
             tree_ids.update(gather_category_ids(category))
 
     return tree_ids
+
+
+def get_next_review_book(current_book_id):
+    return (
+        Book.query.filter(Book.needs_review.is_(True), Book.id != current_book_id)
+        .order_by(Book.created_at.desc())
+        .first()
+    )
 
 
 def rating_stars(rating):

@@ -16,13 +16,17 @@
                 <p class="text-sm font-semibold text-sky-900">Online Enrichment</p>
                 <p class="mt-1 text-sm text-slate-600">Use the current ISBN to fetch missing details and a cover without overwriting fields you have already filled in.</p>
             </div>
-            <form method="post" action="{{ url_for('main.fetch_book_details', book_id=book.id) }}">
+            <form method="post" action="{{ url_for('main.fetch_book_details', book_id=book.id, review=1) if review_mode else url_for('main.fetch_book_details', book_id=book.id) }}">
                 <button type="submit" class="rounded-full bg-sky-600 px-5 py-3 text-sm font-semibold text-white transition hover:bg-sky-500">Get Details Online</button>
             </form>
         </div>
     {% endif %}
 
     <form method="post" action="{{ form_action }}" enctype="multipart/form-data" class="grid gap-5 lg:grid-cols-2">
+        {% if review_mode %}
+            <input type="hidden" name="review_mode" value="1">
+        {% endif %}
+
         <label class="block">
             <span class="mb-2 block text-sm font-medium text-stone-700">Title</span>
             <input type="text" name="title" value="{{ book.title if book else '' }}" required class="w-full rounded-2xl border border-stone-300 bg-stone-50 px-4 py-3">
@@ -147,8 +151,17 @@
         </div>
 
         <div class="flex flex-wrap gap-3 lg:col-span-2">
-            <button type="submit" class="rounded-full bg-stone-900 px-6 py-3 text-sm font-semibold text-white transition hover:bg-stone-700">Save Book</button>
-            <a href="{{ url_for('main.manage_books') }}" class="rounded-full border border-stone-300 px-6 py-3 text-sm font-semibold text-stone-700 transition hover:bg-stone-100">Cancel</a>
+            {% if review_mode %}
+                <button type="submit" name="action" value="save_next" class="rounded-full bg-stone-900 px-6 py-3 text-sm font-semibold text-white transition hover:bg-stone-700">Save & Next Review</button>
+                <button type="submit" name="action" value="save_return" class="rounded-full border border-stone-300 px-6 py-3 text-sm font-semibold text-stone-700 transition hover:bg-stone-100">Save & Return to Review List</button>
+                <a href="{{ url_for('main.manage_books', review=1) }}" class="rounded-full border border-stone-300 px-6 py-3 text-sm font-semibold text-stone-700 transition hover:bg-stone-100">Cancel</a>
+                {% if next_review_book %}
+                    <a href="{{ url_for('main.edit_book', book_id=next_review_book.id, review=1) }}" class="rounded-full border border-amber-300 px-6 py-3 text-sm font-semibold text-amber-800 transition hover:bg-amber-50">Skip to Next</a>
+                {% endif %}
+            {% else %}
+                <button type="submit" name="action" value="save" class="rounded-full bg-stone-900 px-6 py-3 text-sm font-semibold text-white transition hover:bg-stone-700">Save Book</button>
+                <a href="{{ url_for('main.manage_books') }}" class="rounded-full border border-stone-300 px-6 py-3 text-sm font-semibold text-stone-700 transition hover:bg-stone-100">Cancel</a>
+            {% endif %}
         </div>
     </form>
 

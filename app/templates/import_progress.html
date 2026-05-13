@@ -7,7 +7,8 @@
     <p class="text-sm uppercase tracking-[0.35em] text-sky-700">Import In Progress</p>
     <h1 class="mt-2 text-3xl font-semibold text-slate-950">Working through your library in batches</h1>
     <p class="mt-4 text-slate-600">
-        Imported {{ processed_count }} books in the latest batch.
+        Imported or updated {{ processed_count }} file(s) in the latest batch.
+        {% if skipped_count %}Quarantined {{ skipped_count }} duplicate or conflicting files.{% endif %}
         {{ remaining_count }} supported files are still waiting in the queue.
     </p>
 

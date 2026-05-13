@@ -1,5 +1,7 @@
 import json
+from pathlib import Path
 
+from flask import current_app, has_app_context
 from app import db
 
 
@@ -80,6 +82,22 @@ class AppSetting(db.Model):
             db.session.add(cls(key=key, value=serialized))
 
 
+class ImportedFile(db.Model):
+    id = db.Column(db.Integer, primary_key=True)
+    book_id = db.Column(db.Integer, db.ForeignKey("book.id"), nullable=False)
+    format = db.Column(db.String(16), nullable=False)
+    stored_filename = db.Column(db.String(255), nullable=False)
+    original_filename = db.Column(db.String(255), nullable=False)
+    sha256 = db.Column(db.String(64), nullable=False, unique=True, index=True)
+    file_size = db.Column(db.Integer, nullable=False)
+    created_at = db.Column(db.DateTime, server_default=db.func.now(), nullable=False)
+
+    book = db.relationship("Book", backref=db.backref("imported_files", lazy="select"))
+
+    def __repr__(self):
+        return f"<ImportedFile {self.format} {self.stored_filename}>"
+
+
 class Book(db.Model):
     id = db.Column(db.Integer, primary_key=True)
     title = db.Column(db.String(255), nullable=False)
@@ -116,12 +134,9 @@ class Book(db.Model):
 
     @property
     def primary_format(self):
-        if self.pdf_filename:
-            return "PDF"
-        if self.epub_filename:
-            return "EPUB"
-        if self.mobi_filename:
-            return "MOBI"
+        formats = self.available_formats()
+        if formats:
+            return formats[0][0]
         return "Unknown"
 
     @property
@@ -130,13 +145,29 @@ class Book(db.Model):
 
     def available_formats(self):
         formats = []
-        if self.pdf_filename:
+        if self.has_stored_file(self.pdf_filename):
             formats.append(("PDF", self.pdf_filename))
-        if self.epub_filename:
+        if self.has_stored_file(self.epub_filename):
             formats.append(("EPUB", self.epub_filename))
-        if self.mobi_filename:
+        if self.has_stored_file(self.mobi_filename):
             formats.append(("MOBI", self.mobi_filename))
         return formats
+
+    def has_stored_file(self, filename):
+        if not filename:
+            return False
+        if not has_app_context():
+            return True
+
+        library_dir = Path(current_app.config["LIBRARY_DIR"]).resolve()
+        file_path = (library_dir / filename).resolve()
+
+        try:
+            file_path.relative_to(library_dir)
+        except ValueError:
+            return False
+
+        return file_path.is_file()
 
     def __repr__(self):
         return f"<Book {self.title} by {self.author}>"

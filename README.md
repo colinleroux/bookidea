@@ -54,6 +54,14 @@ python scripts\migrate_db.py
 
 Current migrations are additive only and do not alter or delete existing book records.
 
+When deploying duplicate-import protection for the first time, run:
+
+```powershell
+python scripts\backfill_imported_files.py
+```
+
+This records hashes for files already referenced by the library so future imports can detect exact duplicates even when filenames differ.
+
 ## Book import workflow
 
 The current import flow is:
@@ -64,6 +72,8 @@ The current import flow is:
 4. Metadata is extracted where possible.
 5. If no usable cover is found, the app generates a colorful placeholder cover.
 6. Imported books missing important information are marked `Needs review`.
+
+Exact duplicate files are quarantined into [data/duplicate_books](data/duplicate_books) instead of being imported again. If a file appears to match an existing book but would replace an already-present format, it is also quarantined for manual review.
 
 You can then use `Manage Books` or `Review Imports` to clean up metadata.
 

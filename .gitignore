@@ -3,7 +3,9 @@ __pycache__/
 data/*.db
 data/books/*
 data/covers/*
+data/duplicate_books/*
 data/new_books/*
 !data/books/.gitkeep
 !data/covers/.gitkeep
+!data/duplicate_books/.gitkeep
 !data/new_books/.gitkeep

@@ -19,8 +19,36 @@
     </div>
 </section>
 
+<section class="mb-6 rounded-[2rem] border border-stone-300 bg-white/90 p-5 shadow-lg shadow-stone-800/5">
+    <form method="get" action="{{ url_for('main.manage_books') }}" class="grid gap-4 lg:grid-cols-[1.4fr_1fr_auto]">
+        {% if review_only %}
+            <input type="hidden" name="review" value="1">
+        {% endif %}
+        <label class="block">
+            <span class="mb-2 block text-sm font-medium text-stone-700">Search by title or author</span>
+            <input type="text" name="q" value="{{ query_text }}" placeholder="Find a book to edit" class="w-full rounded-2xl border border-stone-300 bg-stone-50 px-4 py-3">
+        </label>
+        <label class="block">
+            <span class="mb-2 block text-sm font-medium text-stone-700">Status</span>
+            <select name="status" class="w-full rounded-2xl border border-stone-300 bg-stone-50 px-4 py-3" {% if review_only %}disabled{% endif %}>
+                <option value="" {% if not status_filter %}selected{% endif %}>All books</option>
+                <option value="needs_review" {% if status_filter == "needs_review" %}selected{% endif %}>Needs review</option>
+                <option value="ready" {% if status_filter == "ready" %}selected{% endif %}>Ready</option>
+            </select>
+        </label>
+        <div class="flex items-end gap-3">
+            <button type="submit" class="rounded-full bg-stone-900 px-5 py-3 text-sm font-semibold text-white transition hover:bg-stone-700">Apply</button>
+            <a href="{{ url_for('main.manage_books', review=1) if review_only else url_for('main.manage_books') }}" class="rounded-full border border-stone-300 px-5 py-3 text-sm font-semibold text-stone-700 transition hover:bg-stone-100">Reset</a>
+        </div>
+    </form>
+</section>
+
 <section class="rounded-[2rem] border border-stone-300 bg-white/90 p-5 shadow-lg shadow-stone-800/5">
     {% if books %}
+        <div class="mb-4 flex flex-wrap items-center justify-between gap-3 px-2 text-sm text-stone-600">
+            <p>Showing {{ books|length }} of {{ pagination.total }} books.</p>
+            <p>Needs-review books are shown first.</p>
+        </div>
         <div class="overflow-x-auto">
             <table class="min-w-full divide-y divide-stone-200 text-left">
                 <thead>
@@ -52,7 +80,7 @@
                             <td class="px-4 py-4">
                                 <div class="flex flex-wrap gap-3 text-sm font-medium">
                                     <a href="{{ url_for('main.book_detail', book_id=book.id) }}" class="text-stone-900">View</a>
-                                    <a href="{{ url_for('main.edit_book', book_id=book.id) }}" class="text-amber-700">Edit</a>
+                                    <a href="{{ url_for('main.edit_book', book_id=book.id, review=1) if review_only or book.needs_review else url_for('main.edit_book', book_id=book.id) }}" class="text-amber-700">{% if review_only or book.needs_review %}Review{% else %}Edit{% endif %}</a>
                                     <form action="{{ url_for('main.delete_book', book_id=book.id) }}" method="post" onsubmit="return confirm('Delete this book from the database?');">
                                         <button type="submit" class="text-rose-700">Delete</button>
                                     </form>
@@ -63,6 +91,20 @@
                 </tbody>
             </table>
         </div>
+
+        {% if pagination.pages > 1 %}
+            <div class="mt-6 flex flex-wrap items-center justify-between gap-4 border-t border-stone-200 px-2 pt-5">
+                <p class="text-sm text-stone-600">Page {{ pagination.page }} of {{ pagination.pages }}</p>
+                <div class="flex flex-wrap gap-3">
+                    {% if pagination.has_prev %}
+                        <a href="{{ url_for('main.manage_books', page=pagination.prev_num, q=query_text, status=status_filter, review=1 if review_only else None) }}" class="rounded-full border border-stone-300 px-4 py-2 text-sm font-semibold text-stone-700 transition hover:bg-stone-100">Previous</a>
+                    {% endif %}
+                    {% if pagination.has_next %}
+                        <a href="{{ url_for('main.manage_books', page=pagination.next_num, q=query_text, status=status_filter, review=1 if review_only else None) }}" class="rounded-full border border-stone-300 px-4 py-2 text-sm font-semibold text-stone-700 transition hover:bg-stone-100">Next</a>
+                    {% endif %}
+                </div>
+            </div>
+        {% endif %}
     {% else %}
         <p class="px-4 py-8 text-center text-stone-600">No books found for this view yet.</p>
     {% endif %}
