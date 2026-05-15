@@ -16,9 +16,7 @@
                 <p class="text-sm font-semibold text-sky-900">Online Enrichment</p>
                 <p class="mt-1 text-sm text-slate-600">Use the current ISBN to fetch missing details and a cover without overwriting fields you have already filled in.</p>
             </div>
-            <form method="post" action="{{ url_for('main.fetch_book_details', book_id=book.id, review=1) if review_mode else url_for('main.fetch_book_details', book_id=book.id) }}">
-                <button type="submit" class="rounded-full bg-sky-600 px-5 py-3 text-sm font-semibold text-white transition hover:bg-sky-500">Get Details Online</button>
-            </form>
+            <button type="submit" form="book-edit-form" name="action" value="fetch_details" class="rounded-full bg-sky-600 px-5 py-3 text-sm font-semibold text-white transition hover:bg-sky-500">Get Details Online</button>
         </div>
 
         {% if can_convert_epub %}
@@ -34,7 +32,7 @@
         {% endif %}
     {% endif %}
 
-    <form method="post" action="{{ form_action }}" enctype="multipart/form-data" class="grid gap-5 lg:grid-cols-2">
+    <form id="book-edit-form" method="post" action="{{ form_action }}" enctype="multipart/form-data" class="grid gap-5 lg:grid-cols-2">
         {% if review_mode %}
             <input type="hidden" name="review_mode" value="1">
         {% endif %}
@@ -122,7 +120,8 @@
                 {% if book and book.description %}
                     <button
                         type="submit"
-                        form="strip-description-html"
+                        name="action"
+                        value="strip_description_html"
                         class="rounded-full border border-sky-200 px-4 py-2 text-xs font-semibold text-sky-700 transition hover:bg-sky-50"
                     >Strip HTML</button>
                 {% endif %}
@@ -185,15 +184,6 @@
             {% endif %}
         </div>
     </form>
-
-    {% if book and book.description %}
-        <form
-            id="strip-description-html"
-            method="post"
-            action="{{ url_for('main.strip_book_description_html', book_id=book.id, review=1) if review_mode else url_for('main.strip_book_description_html', book_id=book.id) }}"
-            onsubmit="return confirm('Strip HTML tags from this saved description? Unsaved edits in the form will not be included.');"
-        ></form>
-    {% endif %}
 
     {% if book %}
         <div class="mt-8 border-t border-stone-200 pt-6">

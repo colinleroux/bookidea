@@ -82,11 +82,13 @@
                             </a>
                             <button
                                 type="button"
-                                class="absolute bottom-2 right-2 flex h-9 w-9 items-center justify-center rounded-full border border-white/80 bg-slate-950/75 text-sm font-semibold text-white shadow-lg transition hover:bg-sky-600"
+                                class="absolute bottom-2 right-2 flex h-9 w-9 items-center justify-center rounded-full border border-white/80 bg-white/88 text-slate-800 shadow-lg shadow-slate-900/20 backdrop-blur transition hover:bg-sky-600 hover:text-white"
                                 title="Show details"
                                 aria-label="Show details for {{ book.title }}"
                                 @click="expanded = !expanded"
-                            >i</button>
+                            >
+                                <span class="text-lg leading-none" aria-hidden="true">&#8942;</span>
+                            </button>
                         </div>
 
                         <div x-show="expanded" x-transition class="border-t border-sky-100 p-3">

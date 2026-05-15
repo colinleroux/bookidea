@@ -319,6 +319,21 @@ def edit_book(book_id):
         action = request.form.get("action", "save")
         review_mode = request.form.get("review_mode") == "1"
         populate_book_from_form(book, request.form)
+
+        if action == "strip_description_html":
+            cleaned_description = strip_description_html(book.description)
+            if cleaned_description == (book.description or ""):
+                flash("Description did not contain HTML that needed cleaning.", "info")
+            else:
+                book.description = cleaned_description or None
+                flash("Description HTML stripped.", "success")
+            db.session.commit()
+            return redirect(url_for("main.edit_book", book_id=book.id, review=1) if review_mode else url_for("main.edit_book", book_id=book.id))
+
+        if action == "fetch_details":
+            db.session.commit()
+            return fetch_and_apply_book_details(book, review_mode=review_mode)
+
         db.session.commit()
         flash("Book updated.", "success")
         if action == "save_next" and review_mode:
@@ -393,7 +408,11 @@ def delete_book(book_id):
 @main.route("/manage/books/<int:book_id>/fetch-details", methods=["POST"])
 def fetch_book_details(book_id):
     book = Book.query.get_or_404(book_id)
-    redirect_args = {"review": 1} if request.args.get("review") == "1" else {}
+    return fetch_and_apply_book_details(book, review_mode=request.args.get("review") == "1")
+
+
+def fetch_and_apply_book_details(book, review_mode=False):
+    redirect_args = {"review": 1} if review_mode else {}
 
     if not book.isbn:
         flash("Add an ISBN before trying to fetch details online.", "error")

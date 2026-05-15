@@ -59,6 +59,7 @@ class DescriptionHTMLStripper(HTMLParser):
     def get_text(self):
         text = unescape("".join(self.parts))
         text = re.sub(r"\s+([,.;:!?])", r"\1", text)
+        text = text.replace("**", "")
         lines = [line.strip() for line in text.splitlines()]
 
         cleaned_lines = []
