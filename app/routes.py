@@ -14,7 +14,7 @@ from sqlalchemy import or_
 from werkzeug.utils import secure_filename
 
 from app import db
-from app.models import AppSetting, Book, Category, Tag, WantedBook
+from app.models import AppSetting, Book, Category, ImportedFile, Tag, WantedBook
 from app.services.conversion import can_convert_epub_to_pdf, convert_epub_to_pdf
 from app.services.importer import cover_file_path, ensure_placeholder_cover, import_new_books, slugify
 from app.services.online_metadata import fetch_metadata_by_isbn, save_cover_from_url
@@ -396,6 +396,7 @@ def delete_book(book_id):
     if delete_files:
         delete_book_files(book)
 
+    ImportedFile.query.filter_by(book_id=book.id).delete(synchronize_session=False)
     db.session.delete(book)
     db.session.commit()
     if delete_files:

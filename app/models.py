@@ -92,7 +92,10 @@ class ImportedFile(db.Model):
     file_size = db.Column(db.Integer, nullable=False)
     created_at = db.Column(db.DateTime, server_default=db.func.now(), nullable=False)
 
-    book = db.relationship("Book", backref=db.backref("imported_files", lazy="select"))
+    book = db.relationship(
+        "Book",
+        backref=db.backref("imported_files", lazy="select", cascade="all, delete-orphan"),
+    )
 
     def __repr__(self):
         return f"<ImportedFile {self.format} {self.stored_filename}>"
