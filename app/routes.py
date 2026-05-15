@@ -18,6 +18,7 @@ from app.models import AppSetting, Book, Category, Tag, WantedBook
 from app.services.conversion import can_convert_epub_to_pdf, convert_epub_to_pdf
 from app.services.importer import cover_file_path, ensure_placeholder_cover, import_new_books, slugify
 from app.services.online_metadata import fetch_metadata_by_isbn, save_cover_from_url
+from app.services.text_cleanup import strip_description_html
 
 main = Blueprint("main", __name__)
 
@@ -349,6 +350,26 @@ def convert_book_epub_to_pdf(book_id):
     redirect_args = {"review": 1} if request.args.get("review") == "1" else {}
     success, message = convert_epub_to_pdf(book)
     flash(message, "success" if success else "error")
+    return redirect(url_for("main.edit_book", book_id=book.id, **redirect_args))
+
+
+@main.route("/manage/books/<int:book_id>/strip-description-html", methods=["POST"])
+def strip_book_description_html(book_id):
+    book = Book.query.get_or_404(book_id)
+    redirect_args = {"review": 1} if request.args.get("review") == "1" else {}
+
+    if not book.description:
+        flash("This book has no description to clean.", "info")
+        return redirect(url_for("main.edit_book", book_id=book.id, **redirect_args))
+
+    cleaned_description = strip_description_html(book.description)
+    if cleaned_description == book.description:
+        flash("Description did not contain HTML that needed cleaning.", "info")
+        return redirect(url_for("main.edit_book", book_id=book.id, **redirect_args))
+
+    book.description = cleaned_description or None
+    db.session.commit()
+    flash("Description HTML stripped.", "success")
     return redirect(url_for("main.edit_book", book_id=book.id, **redirect_args))
 
 
