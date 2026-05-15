@@ -82,7 +82,7 @@ def source():
         "source.html",
         books=pagination.items,
         pagination=pagination,
-        categories=Category.query.order_by(Category.name.asc()).all(),
+        categories=ordered_categories(),
         query_text=query_text,
         selected_category=selected_category,
         sort=sort,
@@ -130,7 +130,7 @@ def want_list():
         "want_list.html",
         wanted_books=pagination.items,
         pagination=pagination,
-        categories=Category.query.order_by(Category.name.asc()).all(),
+        categories=ordered_categories(),
         query_text=query_text,
         selected_category=selected_category,
         status_filter=status_filter,
@@ -153,7 +153,7 @@ def edit_wanted_book(wanted_book_id):
     return render_template(
         "wanted_book_form.html",
         wanted_book=wanted_book,
-        categories=Category.query.order_by(Category.name.asc()).all(),
+        categories=ordered_categories(),
         status_options=sorted(WANTED_BOOK_STATUSES),
     )
 
@@ -222,7 +222,7 @@ def render_library_page(collection=None, heading="Library"):
     per_page = 48 if view_mode == "compact" else 24
     pagination = books_query.order_by(Book.title.asc()).paginate(page=page, per_page=per_page, error_out=False)
     books = pagination.items
-    categories = Category.query.order_by(Category.name.asc()).all()
+    categories = ordered_categories()
     endpoint = {
         "favorites": "main.favorites",
         "currently-reading": "main.currently_reading",
@@ -302,7 +302,8 @@ def new_book():
     return render_template(
         "book_form.html",
         book=None,
-        categories=Category.query.order_by(Category.name.asc()).all(),
+        categories=ordered_categories(),
+        top_level_categories=top_level_categories(),
         tags=Tag.query.order_by(Tag.name.asc()).all(),
         form_action=url_for("main.new_book"),
         page_title="Add Book",
@@ -349,7 +350,8 @@ def edit_book(book_id):
     return render_template(
         "book_form.html",
         book=book,
-        categories=Category.query.order_by(Category.name.asc()).all(),
+        categories=ordered_categories(),
+        top_level_categories=top_level_categories(),
         tags=Tag.query.order_by(Tag.name.asc()).all(),
         form_action=url_for("main.edit_book", book_id=book.id, review=1) if review_mode else url_for("main.edit_book", book_id=book.id),
         page_title=f"Edit {book.title}",
@@ -471,7 +473,7 @@ def manage_categories():
         flash("Category added.", "success")
         return redirect(url_for("main.manage_categories"))
 
-    categories = Category.query.order_by(Category.name.asc()).all()
+    categories = ordered_categories()
     excluded_category_ids = get_excluded_homepage_category_ids()
     category_rows = [
         {
@@ -654,6 +656,16 @@ def count_books_in_category_tree(category):
     return Book.query.filter(Book.category_id.in_(category_ids)).count()
 
 
+def ordered_categories():
+    categories = Category.query.all()
+    return sorted(categories, key=lambda category: category.full_name().lower())
+
+
+def top_level_categories():
+    categories = Category.query.filter(Category.parent_id.is_(None)).all()
+    return sorted(categories, key=lambda category: category.name.lower())
+
+
 def filtered_wanted_books_query(query_text="", category_id=None, status_filter="active"):
     wanted_query = WantedBook.query
 
@@ -759,7 +771,7 @@ def populate_book_from_form(book, form):
     book.language = form.get("language", "").strip() or None
     book.page_count = parse_int(form.get("page_count"))
     book.rating = parse_float(form.get("rating"))
-    book.category_id = form.get("category_id", type=int) or None
+    book.category_id = form.get("category_id", type=int) or form.get("top_level_category_id", type=int) or None
     book.pdf_filename = form.get("pdf_filename", "").strip() or None
     book.epub_filename = form.get("epub_filename", "").strip() or None
     book.mobi_filename = form.get("mobi_filename", "").strip() or None
